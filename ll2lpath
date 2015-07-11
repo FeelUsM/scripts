@@ -1,0 +1,13 @@
+#! /bin/bash
+
+datetime=$(date '+%F-%H-%M-%S')
+
+printf "" >.ls-log
+ls -alR --time-style=+%s    2>>.ls-log |
+    runcpp ll2lpath-internal .files-$datetime .files-log
+
+[ -s .files-log -o -s .ls-log  ]  && # -s - существует и не пуст 
+    echo =============== SAPID ============= &&
+    cat .files-log .ls-log | tee .files-log-$datetime 
+
+rm .files-log .ls-log
