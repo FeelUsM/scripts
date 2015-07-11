@@ -16,19 +16,7 @@ alias yacadav='cadaver https://webdav.yandex.ru'
 alias path='sed '\''s/:/\n/g'\'
 
 #=== stack ===
-if [ -n "$ZSH_VERSION" ]; then
-    #echo STACK_SEPARATOR for zsh
-    STACK_SEPARATOR='\\n' #I don't understand, how it works
-else
-if [ -n "$BASH_VERSION" ]; then
-    #echo STACK_SEPARATOR for bash
-    STACK_SEPARATOR="\$'\n'" #how it works is not visible under echo, but visible under printf "%s"
-else
-    echo STACK_SEPARATOR for default
-    STACK_SEPARATOR=':'
-fi
-fi
-       
+STACK_SEPARATOR="\$'\n'" #how it works is invisible throw echo, but visible throw 'printf "%s"' (under bash)
 push()
 {
     usage()
@@ -49,6 +37,17 @@ pop()
     [ $# != 1 ] && { usage; return 1; }
 
     eval "echo \${$1##*$STACK_SEPARATOR}"
+    eval "$1=\${$1%$STACK_SEPARATOR*}"
+}
+popto()
+{
+    usage()
+    {
+	echo usage: popto array_name var_name >&2
+    }
+    [ $# != 2 ] && { usage; return 1; }
+
+    eval "$2=\${$1##*$STACK_SEPARATOR}"
     eval "$1=\${$1%$STACK_SEPARATOR*}"
 }
 
