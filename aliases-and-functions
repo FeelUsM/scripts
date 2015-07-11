@@ -13,7 +13,7 @@ alias wgetsite="wget -r -np -k -p -e robots=off -U mozilla --random-wait"
 alias yacadav='cadaver https://webdav.yandex.ru'
 
 #=== echo $PATH ===
-alias path='sed '\''s/:/\n/g'\'
+alias path-n='sed '\''s/:/\n/g'\'
 
 #=== stack ===
 STACK_SEPARATOR="\$'\n'" #how it works is invisible throw echo, but visible throw 'printf "%s"' (under bash)
