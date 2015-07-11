@@ -1,0 +1,182 @@
+#! /bin/bash
+#todo добавить использование getopt
+
+printhelp()
+{
+    I_AM=$(basename "$0")
+    cat >&2 <<EOF
+$I_AM - allow run one .c or .cpp file as script >&2
+usage
+    $I_AM -h | --help
+    $I_AM [-f | -c | -w | -o OPTIONS]... ( PROGRAM | -r PROGRAM ) ARGS
+  PROGRAM is .c or .cpp file (bat you can don'\''type .c or .cpp),
+      placed in current directory, or in directory which containing in \$PATH
+      (if does not filnd - return 2)
+  OPTIONS - options which is getting to compilator
+    OPTIONS must be one argument to this script, so if its several - put its in quotes
+    and its must not contain unresolved variables, so if its contain ones - put its in double quotes, to bash resolve ones
+    also if defined environment variable RUNCPP_OPTIONS, it used as options
+    if -o OPTIONS is defined in command line - it added throw space to options defined in RUNCPP_OPTIONS
+  -f - force compile
+  -c - compile only, without execute
+  -w - which-mode - only print founded path/file, without compile and run
+  -r - for PROGRAM, which start from dash "-"
+  -i - for ignore RUNCPP_OPTION
+
+This script create executable (throw g++) near the source file and run it (throw exec).
+
+If executable already exist - this script compare it change time (like make) and, if it necessary, (re)compile source.
+if at compilation happens an errors - script explicitly message about it and print only <=40 lines of error messages
+      and number of total lines of error messages (and return 99)
+(if wrong syntax - return 1)
+
+Thogh g++ invocation is: g++ [OPTIONS] [path/]PROGRAM[.cpp|.c] -o PROGRAM
+and program invocation is: exec [./|path/]PROGRAM ARGS
+EOF
+    exit $1
+}
+#help message
+[ $# == 0 -o "$1" == -h -o "$1" == --help ] && printhelp 0
+
+#g++ options
+if [ -n "$RUNCPP_OPTIONS" ]; then
+    options="$RUNCPP_OPTIONS"
+fi
+force=0
+onlycompile=0
+whichonly=0
+while [ $# -gt 0 -a -z "$cppname" ]; do
+    case "$1" in
+	-i)
+	    #echo option -i
+	    options=
+	    shift  ;;
+	-o)
+	    #echo option -o
+	    [ $# -lt 2 ] && printhelp 1
+	    options="$options $2"
+	    shift; shift  ;;
+	-f)
+	    echo option -f
+	    force=1
+	    shift  ;;
+	-c)
+	    #echo option -c
+	    onlycompile=1
+	    shift  ;;
+	-w)
+	    #echo option -w
+	    whichonly=1
+	    shift  ;;
+	-r)
+	    #echo option -r
+	    [ $# -lt 2 ] && printhelp 1
+	    cppname=$1
+	    shift; shift  ;;
+	-*)
+	    #echo option '-*' "$1"
+	    printhelp 1 ;;
+	*)
+	    #echo option cppname "$1"
+	    cppname=$1
+	    shift  ;;
+    esac
+done
+[ -z "$cppname" ] && printhelp 1
+
+#=== cpp are placed in path ===
+findcpp()
+{
+    if [ ! -e "$cppname" ] ; then
+	#echo search "$cppname"
+	while read -d : p; do
+	    #		     echo check "$p"/"$cppname"
+	    [ -e "$p/$cppname" ] && { cppname="$p/$cppname";
+				      #echo found "$cppname";
+				      break; }
+	done< <(echo "$PATH":)
+    fi
+}
+if [[ "$cppname" == *.cpp ]] || [[ "$cppname" == *.c ]]
+then
+    findcpp
+else
+    tmp="$cppname"
+    cppname="$tmp".cpp
+    findcpp
+    if [ ! -e "$cppname" ]
+    then
+	cppname="$tmp".c
+	findcpp
+    fi
+fi
+[ ! -e "$cppname" ] && { echo runcpp: "$cppname" does not found >&2 ;  exit 2; }
+[ $whichonly == 1 ] && { echo $cppname; exit 0; }
+
+#=== evaluate exename ===
+if [[ "$cppname" == *.cpp ]] ; then exename="${cppname%.cpp}"
+else if [[ "$cppname" == *.c ]] ; then exename="${cppname%.c}"
+     else echo 'runcpp: name of source shold be *.c or *.cpp' >&2
+     fi; fi
+#если не указано .exe то оно не только запускается, но и на существование и на определение времени работает правильно
+#if [[ $(uname -o) == "Cygwin" ]]; then exename="$exename".exe; fi
+
+#=== compile function ===
+compile()
+{
+# ????? почему вывод в stdout не работает, если  вывод g++ не перенаправлять в stdout ???
+    echo "runcpp: compile $cppname (options = $options)" >&2
+    g++ $options "$cppname" -o "$exename" 2>&1 | awk 'NR<=40;  END {print "runcpp: compile messages lines " NR}' >&2
+#    g++ -I"$YADISK_PATH"/_programming/_src/include/ "$cppname" -o "$exename" 2>&1 | tee >(sleep 1; wc -l >&2; echo \^ total lines >&2) | cat | head -n 40
+#нужно больше котиков
+    if [ $PIPESTATUS != 0 ]
+    then
+# ????? почему вывод в stdout не работает, если  вывод g++ не перенаправлять в stdout ???
+	echo '***** ОШИБКА КОМПИЛЯЦИИ *****' >&2
+	exit 99;
+    fi
+}
+
+#=== debug information ===
+if false; then
+   if [ -e "$exename" ] ;
+   then echo true: exename \("$exename"\) exist
+   else echo false: exename \("$exename"\) not exist
+   fi
+   if [ $(stat --format=%Y "$cppname") -lt $(stat --format=%Y "$exename") ]
+   then echo true: exe \($(stat --format=%Y "$exename")\) created later then cpp\($(stat --format=%Y "$cppname")\) 
+   else echo false: cpp\($(stat --format=%Y "$cppname")\) created later then exe \($(stat --format=%Y "$exename")\)
+   fi
+   if [ -z "$(grep '\<stralgorithm\>' "$cppname")" ] ;
+   then echo true: "$(grep '\<stralgorithm\>' "$cppname")": cpp not contain \<stralgorithm\>
+   else echo false: "$(grep '\<stralgorithm\>' "$cppname")": cpp contain \<stralgorithm\>
+   fi
+   if [ $(stat --format=%Y "$YADISK_PATH"/_programming/_src/include/stralgorithm) -lt $(stat --format=%Y "$exename") ]
+   then echo true: exe \($(stat --format=%Y "$exename")\) created later then stralgorithm\(-cpp\)\($(stat --format=%Y "$YADISK_PATH"/_programming/_src/include/stralgorithm)\) 
+   else echo false: stralgorithm\(-cpp\)\($(stat --format=%Y "$YADISK_PATH"/_programming/_src/include/stralgorithm)\) created later then exe \($(stat --format=%Y "$exename")\)
+   fi
+fi
+
+#=== compile conditions ===
+if [ $force == 1 -o $onlycompile == 1 ]; then
+    compile
+else 
+    if [ -e "$exename" ] && [ $(stat --format=%Y "$cppname") -lt $(stat --format=%Y "$exename") ]; then
+#	( [ -z "$(grep '\<stralgorithm\>' "$cppname")" ] ||\
+#		  [ $(stat --format=%Y "$YADISK_PATH"/_programming/_src/include/stralgorithm) -lt $(stat --format=%Y "$exename") ] )\
+#		|| compile
+#	)
+	:
+    else
+	compile
+    fi
+fi
+[ $onlycompile == 1 ] && exit 0
+
+#=== echo now execute: ===
+if [[ "$exename" == /* ]]
+then 
+    exec $exename $@
+else
+    exec ./$exename $@
+fi
