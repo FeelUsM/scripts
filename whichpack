@@ -1,0 +1,25 @@
+#! /bin/bash
+[ $# == 0 -o "$1" == -h -o "$1" == --help ] &&
+    {
+	cat <<EOF
+whichpack - call which command and then detect, which package contain this file (and print them, if one detected)
+
+it is simple alias for
+under cygwin:    cygcheck -f \$(which \$1)
+under other
+   try use dpkg: dpkg -S \$(which \$1)
+   else - error message and exit 1 
+EOF
+	exit 0;
+    }
+
+if [ "$(uname -o)" == Cygwin ]; then
+    which $1 &&
+	cygcheck -f $(which $1)
+else if [ -n "$(which dpkg)" ]; then
+    which $1 &&
+	dpkg -S $(which $1)
+else	 
+    echo whichpack: unknown system >&2
+    exit 1
+fi fi
