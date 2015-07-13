@@ -1,0 +1,8 @@
+#!/bin/bash
+str=$(ls -l "$1")
+[ "$str" == "" ] && exit 1
+[ "${str#*$'\n'}" != "$str" ] && echo argument must be a symlink >&2 && exit 1
+path="${str#*\ ->\ }"
+[ "$path" == "$str" ] && echo argument must be a symlink >&2 && exit 1
+[ "${path#*\ ->\ }" != "$path" ] && echo warning: link to "$path" may be recognized wrong >&2
+echo "$path"
