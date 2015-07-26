@@ -15,6 +15,9 @@ alias yacadav='cadaver https://webdav.yandex.ru'
 #=== echo $PATH ===
 alias path-n='sed '\''s/:/\n/g'\'
 
+#=== winlink ===
+alias winlink='nircmd shortcut'
+
 #=== stack ===
 STACK_SEPARATOR="\$'\n'" #how it works is invisible throw echo, but visible throw 'printf "%s"' (under bash)
 push()

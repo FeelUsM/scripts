@@ -23,4 +23,5 @@ aliases-and-functions/yacedav 			- cadaver for yandex disk
 aliases-and-functions/myuntar 			- (не тестировал) - если в архиве одна папка - достает ее, иначе достает все в папку с именем архива
 aliases-and-functions/mytar 			- даже не помню синтаксис
 
-nircmd /shortcut файл папка название		- создает виндовый ярлык (не моя, где-то скачал)
+nircmd shortcut файл папка название		- создает виндовый ярлык (не моя, где-то скачал)
+aliases-and-functions/winlink файл папка название = nircmd shortcut
