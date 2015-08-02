@@ -76,3 +76,9 @@ mytar()
 {
     tar -cf $1 -o $1.tgz
 }
+
+#=== zhelp ===
+zbhelp()
+{
+    echo help $1 | bash
+}
