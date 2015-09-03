@@ -8,29 +8,31 @@ printhelp()
 $I_AM - allow run one .c or .cpp file as script >&2
 usage
     $I_AM -h | --help
-    $I_AM [-f | -c | -w | -o OPTIONS]... ( PROGRAM | -r PROGRAM ) ARGS
-  PROGRAM is .c or .cpp file (bat you can don'\''type .c or .cpp),
+    $I_AM [-f | -c | -w | -o OPTIONS | -i | -l | -s SUFFIX]... ( PROGRAM | -r PROGRAM ) ARGS
+  PROGRAM is .c or .cpp file (bat you can don't type .c or .cpp),
       placed in current directory, or in directory which containing in \$PATH
       (if does not filnd - return 2)
-  OPTIONS - options which is getting to compilator
+  OPTIONS - options which is getting to compiler
     OPTIONS must be one argument to this script, so if its several - put its in quotes
     and its must not contain unresolved variables, so if its contain ones - put its in double quotes, to bash resolve ones
     also if defined environment variable RUNCPP_OPTIONS, it used as options
     if -o OPTIONS is defined in command line - it added throw space to options defined in RUNCPP_OPTIONS
+  SUFFIX - will be added to EXENAME
   -f - force compile
   -c - compile only, without execute
   -w - which-mode - only print founded path/file, without compile and run
-  -r - for PROGRAM, which start from dash "-"
+  -r - for PROGRAM, which name starts from dash "-"
   -i - for ignore RUNCPP_OPTION
+  -l - for using compiler clang++
 
-This script create executable (throw g++) near the source file and run it (throw exec).
+This script create executable (throw g++ or clang++ ) near the source file and run it (throw exec).
 
 If executable already exist - this script compare it change time (like make) and, if it necessary, (re)compile source.
-if at compilation happens an errors - script explicitly message about it and print only <=40 lines of error messages
+if at compilation happens an errors - script explicitly message about it and print only <=40 lines (for g++) of error messages
       and number of total lines of error messages (and return 99)
 (if wrong syntax - return 1)
 
-Thogh g++ invocation is: g++ [OPTIONS] [path/]PROGRAM[.cpp|.c] -o PROGRAM
+Thogh g++ invocation is: (g++|clang++) [OPTIONS] [path/]PROGRAM[.cpp|.c] -o PROGRAM
 and program invocation is: exec [./|path/]PROGRAM ARGS
 EOF
     exit $1
@@ -45,6 +47,8 @@ fi
 force=0
 onlycompile=0
 whichonly=0
+clang=0
+suffix=""
 while [ $# -gt 0 -a -z "$cppname" ]; do
     case "$1" in
 	-i)
@@ -55,6 +59,11 @@ while [ $# -gt 0 -a -z "$cppname" ]; do
 	    #echo option -o
 	    [ $# -lt 2 ] && printhelp 1
 	    options="$options $2"
+	    shift; shift  ;;
+	-s)
+	    #echo option -s
+	    [ $# -lt 2 ] && printhelp 1
+	    suffix="$2"
 	    shift; shift  ;;
 	-f)
 	    echo option -f
@@ -67,6 +76,10 @@ while [ $# -gt 0 -a -z "$cppname" ]; do
 	-w)
 	    #echo option -w
 	    whichonly=1
+	    shift  ;;
+	-l)
+	    #echo option -l
+	    clang=1
 	    shift  ;;
 	-r)
 	    #echo option -r
@@ -118,17 +131,24 @@ if [[ "$cppname" == *.cpp ]] ; then exename="${cppname%.cpp}"
 else if [[ "$cppname" == *.c ]] ; then exename="${cppname%.c}"
      else echo 'runcpp: name of source shold be *.c or *.cpp' >&2
      fi; fi
+exename="$(dirname $exename)/.$(basename $exename)$suffix"
 #если не указано .exe то оно не только запускается, но и на существование и на определение времени работает правильно
-#if [[ $(uname -o) == "Cygwin" ]]; then exename="$exename".exe; fi
+if [ $(uname -o) == "Cygwin" -a -z "$suffix" ]; then exename="$exename".exe; fi
+#echo exename = $exename
 
 #=== compile function ===
 compile()
 {
 # ????? почему вывод в stdout не работает, если  вывод g++ не перенаправлять в stdout ???
-    echo "runcpp: compile $cppname (options = $options)" >&2
-    g++ $options "$cppname" -o "$exename" 2>&1 | awk 'NR<=40;  END {print "runcpp: compile messages lines " NR}' >&2
+    if [ $clang == 1 ] ;then
+	echo "runcpp: clang++ $cppname (options = $options)" >&2
+	clang++ $options "$cppname" -o "$exename"
+    else
+	echo "runcpp: g++ $cppname (options = $options)" >&2
+	g++ $options "$cppname" -o "$exename" 2>&1 | awk 'NR<=40;  END {print "runcpp: compile messages lines " NR}' >&2
 #    g++ -I"$YADISK_PATH"/_programming/_src/include/ "$cppname" -o "$exename" 2>&1 | tee >(sleep 1; wc -l >&2; echo \^ total lines >&2) | cat | head -n 40
-#нужно больше котиков
+	#нужно больше котиков
+    fi
     if [ $PIPESTATUS != 0 ]
     then
 # ????? почему вывод в stdout не работает, если  вывод g++ не перенаправлять в stdout ???
