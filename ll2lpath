@@ -1,4 +1,25 @@
-#! /bin/bash
+﻿#! /bin/bash
+
+# todo переписать все нахрен с использованием <dirent.h> и <sys/stat.h>
+
+printhelp()
+{
+    cat >&2 <<EOF
+	ll2lpath - сканирует текущий каталог
+	создает -p в нем папку .files/
+	а в ней файл с именем в виде даты времени
+	содержащий в каждой строчке 
+		размер файла в байтах,
+		время создания файла в секундах с 1970 года
+		путь/имя файла
+	если в процессе сканирования возикли ошибки доступа или что-то в этом роде
+	он записывает это в файл с именем в виде даты времени-log
+	и сообщает "SAPID" (грязно)
+EOF
+}
+
+[ "$1" == -h -o "$1" == --help ] && printhelp 0
+
 
 datetime=$(date '+%F-%H-%M-%S')
 
@@ -8,6 +29,6 @@ ls -alR --time-style=+%s    2>.files/ls-log |
 
 [ -s .files/log -o -s .files/ls-log  ]  && # -s - существует и не пуст 
     echo =============== SAPID ============= &&
-    cat .files/log .files/ls-log | tee .files/log-$datetime 
+    cat .files/log .files/ls-log | tee .files/$datetime-log
 
 rm .files/log .files/ls-log

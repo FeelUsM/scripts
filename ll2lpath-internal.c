@@ -1,3 +1,4 @@
+// todo переписать все нахрен с использованием <dirent.h> и <sys/stat.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -33,7 +34,8 @@ int main(int argc, char * argv[])
   if(argc==4){
     ifnot(in=fopen(argv[3],"w"))
       { fprintf(stderr,"can not open file %s",argv[3]); exit(1); }
-  } else
+  } 
+  else
     in=stdin;
 
   while(!feof(in))
