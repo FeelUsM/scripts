@@ -5,19 +5,21 @@ printhelp()
 {
     I_AM=$(basename "$0")
     cat >&2 <<EOF
-$I_AM - allow run one .c or .cpp file as script >&2
+$I_AM - allow run one source file as script >&2
 usage
     $I_AM -h | --help
     $I_AM [-f | -c | -w | -o OPTIONS | -i | -l | -s SUFFIX]... ( PROGRAM | -r PROGRAM ) ARGS
-  PROGRAM is .c or .cpp file (bat you can don't type .c or .cpp),
+  PROGRAM one source file,
       placed in current directory, or in directory which containing in \$PATH
-      (if does not filnd - return 2)
+      (if does not find - return 2)
   OPTIONS - options which is getting to compiler
     OPTIONS must be one argument to this script, so if its several - put its in quotes
     and its must not contain unresolved variables, so if its contain ones - put its in double quotes, to bash resolve ones
     also if defined environment variable RUNCPP_OPTIONS, it used as options
     if -o OPTIONS is defined in command line - it added throw space to options defined in RUNCPP_OPTIONS
-  SUFFIX - will be added to EXENAME
+  SUFFIX - will be added to EXENAME (and if default suffix exit, it replace it)
+    also if suffix is .i will be added option -E for stop after preprocessing
+    and if suffix is .s will be added option -S for stop after assembling
   -f - force compile
   -c - compile only, without execute
   -w - which-mode - only print founded path/file, without compile and run
@@ -110,10 +112,11 @@ findcpp()
 	done< <(echo "$PATH":)
     fi
 }
-if [[ "$cppname" == *.cpp ]] || [[ "$cppname" == *.c ]]
+if [[ "$cppname" == *.cpp ]] || [[ "$cppname" == *.c ]] || [[ "$cppname" == *.s ]] || [[ "$cppname" == *.i ]]
 then
     findcpp
 else
+    echo can not found exactly \'"$cppname"\' >&2
     tmp="$cppname"
     cppname="$tmp".cpp
     findcpp
@@ -129,9 +132,19 @@ fi
 #=== evaluate exename ===
 if [[ "$cppname" == *.cpp ]] ; then exename="${cppname%.cpp}"
 else if [[ "$cppname" == *.c ]] ; then exename="${cppname%.c}"
-     else echo 'runcpp: name of source shold be *.c or *.cpp' >&2
+     else if [[ "$cppname" == *.i ]] ; then exename="${cppname%.i}"
+	  else if [[ "$cppname" == *.s ]] ; then exename="${cppname%.s}"
+	       else echo 'runcpp: name of source shold be *.c or *.cpp or *.i or *.s' >&2
+	       fi; fi; fi; fi;
+if [ "$suffix" == ".s" ]; then
+    options="$options -S";
+    exename="$(dirname $exename)/$(basename $exename)$suffix"
+else if [ "$suffix" == ".i" ]; then
+	 options="$options -E";
+         exename="$(dirname $exename)/$(basename $exename)$suffix"
+     else
+	 exename="$(dirname $exename)/.$(basename $exename)$suffix"
      fi; fi
-exename="$(dirname $exename)/.$(basename $exename)$suffix"
 #если не указано .exe то оно не только запускается, но и на существование и на определение времени работает правильно
 if [ $(uname -o) == "Cygwin" -a -z "$suffix" ]; then exename="$exename".exe; fi
 #echo exename = $exename
@@ -194,9 +207,14 @@ fi
 [ $onlycompile == 1 ] && exit 0
 
 #=== echo now execute: ===
-if [[ "$exename" == /* ]]
-then 
-    exec $exename $@
+#echo exename = "$exename"
+if [[ "$exename" == *.i ]] || [[ "$exename" == *.s ]]; then
+    echo in "$exename" $(wc -l <"$exename" ) lines
 else
-    exec ./$exename $@
+    if [[ "$exename" == /* ]]
+    then 
+	exec $exename $@
+    else
+	exec ./$exename $@
+    fi
 fi
