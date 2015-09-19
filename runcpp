@@ -210,6 +210,9 @@ fi
 #echo exename = "$exename"
 if [[ "$exename" == *.i ]] || [[ "$exename" == *.s ]]; then
     echo in "$exename" $(wc -l <"$exename" ) lines
+    if [[ "$exename" == *.s ]]; then
+	sed -i 's/\t\./\t\t\t\./' "$exename"
+    fi
 else
     if [[ "$exename" == /* ]]
     then 
