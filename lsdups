@@ -1,0 +1,7 @@
+#! /bin/bash
+
+files=.files/$(ls -1 .files | sort -r | head -n 1)
+[ -z "$files" ] && ll2lpath && files=$(ls .files | sort -r | head -n 1)
+[ -z "$files" ] && echo can not get files file && exit 1
+
+runcpp lsdups-internal "$files" .files/_hashes | tee .files/_dups
