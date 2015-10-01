@@ -1,7 +1,14 @@
 #! /bin/bash
 
-files=.files/$(ls -1 .files | sort -r | head -n 1)
-[ -z "$files" ] && ll2lpath && files=$(ls .files | sort -r | head -n 1)
-[ -z "$files" ] && echo can not get files file && exit 1
+if [ $# == 1 -a "$1" == "--no-ls" ]; then
+:
+else
+	echo ll2lpath: >&2
+	ll2lpath
+fi
+filestmp="$(ls -1 .files/20* .files/19* 2>/dev/null | sort -r | head -n 1)"
+files="${filestmp%-log}"
+#echo $filestmp $files
+[ -z "$files" ] && echo can not get files file >&2 && exit 1
 
-runcpp lsdups-internal "$files" .files/_hashes | tee .files/_dups
+runcpp lsdups-internal.cpp "$files" .files/hashes #| runcpp dups-analys.cpp

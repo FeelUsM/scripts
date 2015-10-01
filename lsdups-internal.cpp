@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#define one_source
 #include "../projs/common-parse-lib/strin.h"
 #include <string>
 #include <algorithm>
@@ -8,6 +9,8 @@
 #include <utility>//pair
 #include <iterator>//iterator_traits,inserters,movers
 #include <limits.h>
+#include <iomanip>
+#include <set>
 using std::cerr;
 using std::cout;
 using std::endl;
@@ -18,6 +21,7 @@ using std::string;
 using std::vector;
 using std::multimap;
 using std::map;
+using std::set;
 
 //удаляет все, что не повторяется
 template<class cont_t, typename comp_t>
@@ -104,6 +108,40 @@ void dump(it_t tmp, mes_t mes){
 	//это не рекурсия, это в forward_stream.h определено для дебага, и здесь тоже пригодилось
 }
 
+struct bytes{
+	int size;
+	bytes(int x):size(x){}
+};
+std::ostream & operator<<(std::ostream & str, bytes b){
+	double size2=b.size;
+	if(size2/1024<1.1)
+		return str<<b.size<<"B";
+	size2/=1024;
+	if(size2/1024<1.1)
+		return str<<std::setprecision(4)<<size2<<"kB";
+	size2/=1024;
+	if(size2/1024<1.1)
+		return str<<std::setprecision(4)<<size2<<"MB";
+	size2/=1024;
+	if(size2/1024<1.1)
+		return str<<std::setprecision(4)<<size2<<"GB";
+	return str<<std::setprecision(4)<<size2<<"GB";
+}
+
+pair<const char *, const char *> str_mismatch(const char * s1, const char *s2){
+	while(*s1 && *s2 && *s1==*s2)
+		s1++, s2++;
+	return make_pair(s1,s2);
+}
+
+const char * find_ext(const string * ps){
+	int dirpos=ps->rfind('/'), extpos=ps->rfind('.');
+	if(extpos>=0 && dirpos<extpos)
+		return ps->c_str()+extpos;
+	else
+		return "";
+}
+
 struct quote_out{
 	const char * s;
 quote_out(const char * ss):s(ss){}
@@ -117,6 +155,7 @@ std::ostream & operator<<(std::ostream & str, quote_out q){
 	}
 	return str;
 }
+
 /*
 из <limits.h> получить ARG_MAX, из environ??? получить размер среды, вычесть его, вычесть еще 1000, и создать такого размера строку, и в нее дописывать 
 env | wc -c
@@ -212,10 +251,8 @@ int main(int argc, const char * argv[]){
 		//нет файла - ну и хрен с ним - вычислим
 	}	//hashes.close()
 	//=== вычисляем НЕзакешированные хеши ===
-	cerr<<"-------------"<<endl;
-	for(auto it=psd2.begin(); it!=psd2.end(); it++)
-		cerr<<it->second.first<<"\t"<<it->first<<endl;
-	cerr<<"-------------"<<endl;
+	//for(auto it=psd2.begin(); it!=psd2.end(); it++)
+		//cerr<<it->second.first<<"\t"<<it->first<<endl;
 	int comstrlen=ARG_MAX-1000;
 	{
 		forward_adressed_stream envlen(true, new file_on_FILE(popen("env | wc -c","r")));
@@ -245,9 +282,6 @@ int main(int argc, const char * argv[]){
 			*begin='\0';
 			it++;
 		}
-		//cerr <<"call "<<array<<endl;
-		//system(array);
-		//break;
 		forward_adressed_stream md5(true,new file_on_FILE(popen(array,"r")));
 		if(!md5)	{	cerr<<"не смог вызвать openssl"<<endl;	return 1;	}
 		while(read_fix_str(md5.iter(),"MD5(")){
@@ -273,18 +307,103 @@ int main(int argc, const char * argv[]){
 		if(!atend(md5.iter()))
 		{	cerr<<"ожидался конец файла"<<endl;	}
 	}
-	cout <<"итого до хешей: "<<hps.size()<<endl;
+	cerr <<"итого до хешей: "<<hps.size()<<" файлов"<<endl;
 	//for(auto it=hps.begin(); it!=hps.end(); it++)
 	//	cout <<it->first<<'\t'<<it->second.second<<'\t'<<it->second.first<<endl;
 	antiuniq(&hps,[](const ssi_t & l, const ssi_t & r){	return l.first==r.first;	});
-	cout <<"итого: "<<hps.size()<<endl;
+	cerr <<"итого: "<<hps.size()<<" файлов"<<endl;
 	
-	auto sss=hps.begin();
-	for(auto it=hps.begin(); it!=hps.end(); it++){
-		if(it->first!=sss->first){
-			sss=it;
-			cout <<"#====================" <<it->second.second<<endl;
+	map<string,map<string,multimap<int,set<string>>>> dups;//comm_path,ext,size,diff_path
+	if(0){
+		auto sss=hps.begin();
+		int size=0;
+		cout<<"///"<<hps.begin()->second.second<<endl;
+		for(auto it=hps.begin(); it!=hps.end(); it++){
+			if(it->first!=sss->first){
+				sss=it;
+				size-=it->second.second;
+				cout<<"///"<<it->second.second<<endl;
+			}
+			size+=it->second.second;
+			cout <<it->second.first.c_str()<<endl;
 		}
-		cout <<"#rm \""<<quote_out(it->second.first.c_str())<<"\""<<endl;
+		cerr<<"итого "<<bytes(size)<<" избыточного"<<endl;
+		return 0;
+	}
+	else{
+		auto sss=hps.begin();
+		int tot_size=0;
+																			//cerr<<"///"<<hps.begin()->second.second<<endl;
+																			cerr<<"итого "<<bytes(tot_size)<<" избыточного"<<endl;
+		int size= (hps.begin()==hps.end()) ? 0 : hps.begin()->second.second;
+		set<string> ldups;//файлы
+		for(auto it=hps.begin(); true; it++){
+			if(it==hps.end() || it->first!=sss->first){
+				sss=it;
+				tot_size-=it->second.second;
+																			//cerr<<"///"<<it->second.second<<endl;
+																			//cerr<<"итого "<<bytes(tot_size)<<" избыточного"<<endl;
+				string compath;//общий путь и удаление его из файлов
+				{
+					auto ff=ldups.begin(), ll=ldups.end();	ll--;
+					int comlen=str_mismatch(ff->c_str(),ll->c_str()).first-ff->c_str();
+					//cerr <<"from "<<*ff<<endl<<"to "<<*ll<<endl<<"lenis"<<comlen<<endl;
+					while(comlen>0 && ff->c_str()[comlen-1]!='/')
+						comlen--;
+					if(comlen){
+						compath.append(ff->c_str(),comlen);
+						for(auto it=ldups.begin(); it!=ldups.end(); it++)
+							const_cast<string&>(*it).erase(0,comlen);// !!! порядок не нарушится
+					}
+				}
+				
+				string comext;//общее расширение
+				{
+					auto it=ldups.begin();
+					comext=find_ext(&*it++);
+					for(;it!=ldups.end(); it++)
+						if(comext!=find_ext(&*it))
+							comext.clear();
+				}
+				
+				dups[compath][comext].insert(move(make_pair(size,move(ldups))));
+				
+				if(it==hps.end())	break;
+				size= it->second.second;
+				ldups.clear();
+			}
+			tot_size+=it->second.second;
+																			//cerr <<it->second.first.c_str()<<endl;
+			ldups.insert(move(it->second.first));
+		}
+
+
+		cerr<<"итого "<<bytes(tot_size)<<" избыточного"<<endl;
+	}
+	
+	for(auto it_compath=dups.begin(); it_compath!=dups.end(); it_compath++){
+		if(!it_compath->first.empty())
+			cout 		<<"cd \""<<quote_out(it_compath->first.c_str())<<"\"";
+		int size=0;
+		for(auto it_comext=it_compath->second.begin(); it_comext!=it_compath->second.end(); it_comext++)
+			for(auto it_size=it_comext->second.begin(); it_size!=it_comext->second.end(); it_size++)
+				size+=it_size->first*(it_size->second.size()-1);
+			cout << " #"<<bytes(size);
+		for(auto it_comext=it_compath->second.begin(); it_comext!=it_compath->second.end(); it_comext++){
+			int size=0;
+			for(auto it_size=it_comext->second.begin(); it_size!=it_comext->second.end(); it_size++)
+				size+=it_size->first*(it_size->second.size()-1);
+			if(it_comext->first.size()>0)
+				cout<<endl<<"#    "<< it_comext->first<<" ("<<bytes(size)<<")"<<endl;
+			else
+				cout<<endl<<"#    no ext"<<" ("<<bytes(size)<<")"<<endl;
+			for(auto it_size=it_comext->second.begin(); it_size!=it_comext->second.end(); it_size++){
+				cout	<<"#      "<<it_size->first<<endl;
+				for(auto it_path=it_size->second.begin(); it_path!=it_size->second.end(); it_path++)
+					cout<<"#rm \"" <<quote_out(it_path->c_str())<<"\""<<endl;
+			}
+		}
+		if(!it_compath->first.empty())
+			cout 		<<"cd -"<<endl<<endl;
 	}
 }

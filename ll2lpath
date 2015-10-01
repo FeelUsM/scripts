@@ -25,10 +25,10 @@ datetime=$(date '+%F-%H-%M-%S')
 
 mkdir -p .files
 ls -alR --time-style=+%s    2>.files/ls-log |
-    runcpp ll2lpath-internal .files/$datetime .files/log
+    runcpp ll2lpath-internal.c .files/$datetime .files/log
 
 [ -s .files/log -o -s .files/ls-log  ]  && # -s - существует и не пуст 
     echo =============== SAPID ============= &&
-    cat .files/log .files/ls-log | tee .files/$datetime-log
+    cat .files/log .files/ls-log | tee .files/$datetime-log	
 
 rm .files/log .files/ls-log
