@@ -1,4 +1,4 @@
-﻿#! /bin/bash
+#! /bin/bash
 
 # todo переписать все нахрен с использованием <dirent.h> и <sys/stat.h>
 
@@ -24,7 +24,7 @@ EOF
 datetime=$(date '+%F-%H-%M-%S')
 
 mkdir -p .files
-ls -alR --time-style=+%s    2>.files/ls-log |
+ls -alR --time-style=+%s    2>.files/ls-log | tee >(grep '^./' > .files/${datetime}-dirs) |
     runcpp ll2lpath-internal.c .files/$datetime .files/log
 
 [ -s .files/log -o -s .files/ls-log  ]  && # -s - существует и не пуст 
