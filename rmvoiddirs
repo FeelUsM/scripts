@@ -1,14 +1,22 @@
 #! /bin/bash
 
+if [ "$1" == "" ]; then
+	start_path=
+else
+	start_path="${1%/}/"
+	cd "$start_path"
+fi
+
 recursive_rm(){
 	local dir="$1"
-	if [ "$(ls -A "$dir")" == "" ]; then
+	if [ "$dir" != "." -a "$(ls -A "$dir")" == "" ]; then
 		rmdir "$dir"
 		[ "${dir%/*}" != "$dir" ] && recursive_rm "${dir%/*}"
-		echo mkdir \""$(echo "$dir" | sed 's/"/\\"/g;s/\$/\\\$/g')"\"
+		echo mkdir \""$(echo "$start_path$dir" | sed 's/"/\\"/g;s/\$/\\\$/g')"\"
 	fi
 }
-	
+
+cycle(){	
 dir=
 after_dir=0
 while read line ; do 
@@ -26,3 +34,6 @@ done < <(ls -AR)
 if [ $after_dir == 1 ]; then
 	recursive_rm "$dir"
 fi
+}
+
+cycle | sort
