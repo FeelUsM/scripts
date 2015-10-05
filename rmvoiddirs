@@ -1,0 +1,28 @@
+#! /bin/bash
+
+recursive_rm(){
+	local dir="$1"
+	if [ "$(ls -A "$dir")" == "" ]; then
+		rmdir "$dir"
+		[ "${dir%/*}" != "$dir" ] && recursive_rm "${dir%/*}"
+		echo mkdir \""$(echo "$dir" | sed 's/"/\\"/g;s/\$/\\\$/g')"\"
+	fi
+}
+	
+dir=
+after_dir=0
+while read line ; do 
+	if [ $after_dir == 1 ]; then
+		if [ "$line" == "" ]; then
+			recursive_rm "$dir"
+		fi
+		after_dir=0
+	fi
+	if [ "${line#./}" != "$line" ]; then
+		dir="${line%:}"
+		after_dir=1
+	fi
+done < <(ls -AR)
+if [ $after_dir == 1 ]; then
+	recursive_rm "$dir"
+fi
