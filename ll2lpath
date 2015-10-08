@@ -21,7 +21,7 @@ EOF
 
 [ "$1" == -h -o "$1" == --help ] && printhelp 0
 
-datetime=$(date '+%F-%H-%M-%S')
+datetime=$(date '+%F-%H:%M:%S')
 files=.files/$datetime-files
 dirs=.files/$datetime-dirs
 oldfiles="$(ls -1 .files/20*-files .files/19*-files .files/21*-files 2>/dev/null | sort -r | head -n 1)"
@@ -31,8 +31,10 @@ mkdir -p .files
 ls -alR --time-style=+%s    2>.files/ls-log | tee >(grep '^./' > $dirs) |
     runcpp ll2lpath-internal.c $files .files/log
 
-if [ $(ls -1 .files/20*-files .files/19*-files .files/21*-files 2>/dev/null | wc -l) -gt 2 -a  "$(diff $oldfiles $files)" == "" -a "$(diff $olddirs $dirs)" == "" ]; then
+if [ $(ls -1 .files/20*-files .files/19*-files .files/21*-files 2>/dev/null | wc -l) -gt 2 \
+	-a  "$(diff $oldfiles $files)" == "" -a "$(diff $olddirs $dirs)" == "" ]; then
 	rm $oldfiles $olddirs
+	echo  $oldfiles $olddirs - обновлены
 fi
 	
 if [ -s .files/log -o -s .files/ls-log  ]; then # -s - существует и не пуст 
