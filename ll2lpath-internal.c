@@ -33,6 +33,8 @@ int main(int argc, char * argv[])
 	{ fprintf(stderr,"can not open file %s",argv[2]); exit(1); }
 	in=stdin;
 
+	int dir_count=0;
+	fprintf(stderr,"progress begin\n");
 	while(!feof(in))
 	{
 		fgets(curpath,MYBUFSIZ,in);
@@ -40,7 +42,8 @@ int main(int argc, char * argv[])
 		curpath[strlen(curpath)-1]='\0';
 		
 		int dot_files = strcmp(curpath,"./.files")==0;
-		fprintf(stderr,"%s\n",curpath);
+		if(dir_count++%100==0)
+			fprintf(stderr,"%s\n",curpath);
 		//		printf("curpath = \"%s\"\n",curpath);
 		
 		fgets(str,MYBUFSIZ,in);//итого кол-во файлов - игнорируем
@@ -80,6 +83,7 @@ int main(int argc, char * argv[])
 		}
 		//           getchar();
 	}
+	fprintf(stderr,"progress end\n");
 
 	fclose(in);
 	fclose(out);
