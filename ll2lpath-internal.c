@@ -34,18 +34,29 @@ int main(int argc, char * argv[])
 	in=stdin;
 
 	int dir_count=0;
-	fprintf(stderr,"progress begin\n");
+#define RID_PRINT 300
 	while(!feof(in))
 	{
 		fgets(curpath,MYBUFSIZ,in);
 		curpath[strlen(curpath)-1]='\0';
 		curpath[strlen(curpath)-1]='\0';
 		
-		int dot_files = strcmp(curpath,"./.files")==0;
-		if(dir_count++%100==0)
+		dir_count++;
+		if(dir_count%RID_PRINT==0){
+			if(dir_count/RID_PRINT==1)
+				fprintf(stderr,"progress begin\n");
 			fprintf(stderr,"%s\n",curpath);
+		}
 		//		printf("curpath = \"%s\"\n",curpath);
 		
+		
+		bool dot_files = false;
+		int i;
+		for(i=3; i<argc; i++)
+			if(strcmp(curpath+2,argv[i])==0){
+				dot_files=true;
+				break;
+			}
 		fgets(str,MYBUFSIZ,in);//итого кол-во файлов - игнорируем
 		while(fgets(str,MYBUFSIZ,in)){
 
@@ -83,7 +94,8 @@ int main(int argc, char * argv[])
 		}
 		//           getchar();
 	}
-	fprintf(stderr,"progress end\n");
+	if(dir_count>=RID_PRINT)
+		fprintf(stderr,"progress end\n");
 
 	fclose(in);
 	fclose(out);
