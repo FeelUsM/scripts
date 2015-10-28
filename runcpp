@@ -194,7 +194,7 @@ fi
 if [ $force == 1 -o $onlycompile == 1 ]; then
     compile
 else 
-    if [ -e "$exename" ] && [ $(stat --format=%Y "$cppname") -lt $(stat --format=%Y "$exename") ]; then
+    if [ -e "$exename" ] && [ "$cppname" -ot "$exename" ]; then
 #	( [ -z "$(grep '\<stralgorithm\>' "$cppname")" ] ||\
 #		  [ $(stat --format=%Y "$YADISK_PATH"/_programming/_src/include/stralgorithm) -lt $(stat --format=%Y "$exename") ] )\
 #		|| compile
