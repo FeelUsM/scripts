@@ -26,7 +26,9 @@ using str::spn_crlf;
 using str::until_charclass;
 using str::make_span;
 
-//  все, что повторяется
+//копирует соседние повторяющиеся
+//заменят их на zero_value
+//а потом удаляет его
 template<class init_t, class outit_t, typename bin_pred_t, class val_t>
 init_t antiuniq_copy_remove(init_t first, init_t last, outit_t out, 
 	const val_t & zero_value, const bin_pred_t & pred)
@@ -48,26 +50,6 @@ template<class init_t, class outit_t, class val_t>
 init_t antiuniq_copy_remove(init_t first, init_t last, outit_t out, const val_t & zero_value)
 {
 	return antiuniq_copy(first,last,out,zero_value,[](const val_t & l, const val_t & r){return l==r;});
-}
-
-template<class init_t, class outit_t, class val_t>
-init_t simultanious_dups_remove(init_t first, init_t last, outit_t out, const val_t & zero_value){
-	auto first2 = first;
-	while(first!=last){
-		auto next = first;
-		next++;
-		bool all_eq=true;
-		for(; next!=last && next->second.first==first->second.first && next->second.second==first->second.second; next++)
-			if(next->first.first!=first->first.first)
-				all_eq = false;
-		if(all_eq)
-			for(auto it = first; it!=next; it++){
-				*out++ = *it;
-				*it = zero_value;
-			}
-		first=next;
-	}
-	return remove(first2,last,zero_value);
 }
 
 /*
@@ -135,8 +117,13 @@ int main(int argc, const char * argv[])
 	});
 	s=end1-diff.begin();
 	while(diff.size()>s)	diff.pop_back();
-	end1 = simultanious_dups_remove(changed.begin(),changed.end(),back_inserter(diff),
-		move(make_pair(move(make_pair('\0',move(string("")))),move(make_pair(0,0)))));
+	end1 = antiuniq_copy_remove(changed.begin(),changed.end(),back_inserter(diff),
+		move(make_pair(move(make_pair('\0',move(string("")))),move(make_pair(0,0)))),
+		[](const pair<pair<char,string>,pair<int,int>> & l, const pair<pair<char,string>,pair<int,int>> & r){
+			return l.second.first==r.second.first && l.second.second==r.second.second && l.first.first==r.first.first;
+			//size, date, +-
+		}
+	);
 	s=end1-changed.begin();
 	while(changed.size()>s)	changed.pop_back();
 	print_moved(cout,changed);

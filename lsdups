@@ -6,9 +6,17 @@ else
 	echo ll2lpath: >&2
 	ll2lpath
 fi
-filestmp="$(ls -1 .files/20* .files/19* 2>/dev/null | sort -r | head -n 1)"
-files="${filestmp%-log}"
-#echo $filestmp $files
-[ -z "$files" ] && echo can not get files file >&2 && exit 1
+files="$(ls -1 .files/20*-files .files/19*-files .files/21*-files 2>/dev/null | sort -r | head -n 1)"
+[ -z "$files" ] && echo lsdups: can not get files file >&2 && exit 1
 
-runcpp lsdups-internal.cpp "$files" .files/hashes #| runcpp dups-analys.cpp
+runcpp -o '-std=gnu++11 -O0' lsdups-internal.cpp "$files" .files/hashes > .files/rmdups
+chmod +x .files/rmdups
+
+if [ ! -f .files/rmdups-persist ]; then
+	if [ -s .files/rmdups ]; then  
+		echo lsdups: .files/rmdups-persist не создан
+	fi
+else
+	echo lsdups: Изменеия в дубликатах по сравнению с .files/rmdups-persist
+	diff -u3 <(tail -n +2 .files/rmdups-persist) <(tail -n +2 .files/rmdups) | grep -v '^+++' | grep -v '^---' 
+fi

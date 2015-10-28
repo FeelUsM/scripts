@@ -31,12 +31,7 @@ olddirs=${oldfiles%-files}-dirs
 mkdir -p .files
 ls -alR --time-style=+%s    2>.files/ls-log | tee >(grep '^./' > $dirs) |
     runcpp ll2lpath-internal.c $files .files/log .files .sync .git
-status="${PIPESTATUS[*]}"
-if [ "$(echo $status | grep '[^0\ ]')" != "" ] ; then
-	echo произошла ошибка: $status >&2
-	exit 1;
-fi;
-	
+[ "${PIPESTATUS[2]}" != 0 ] && exit 1
 
 if  [ -s "$oldfiles" -a -s "$olddirs" ] && 
 	[ $(ls -1 .files/20*-files .files/19*-files .files/21*-files 2>/dev/null | wc -l) -gt 2 ] &&
@@ -45,8 +40,8 @@ if  [ -s "$oldfiles" -a -s "$olddirs" ] &&
 	echo ничего нового
 else
 	echo $files $dirs >> .files/list
-	echo добавлены $files $dirs
-	if  [ -s "$oldfiles" -a -s "$olddirs" ] && 
+	echo созданы $files $dirs
+	if  [ -s "$oldfiles" -a -s "$olddirs" ] ; then
 		diff $oldfiles $files -u0 | runcpp diffiles-internal.cpp
 		diff $olddirs $dirs
 	fi
