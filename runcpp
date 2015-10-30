@@ -8,11 +8,12 @@ printhelp()
 $I_AM - allow run one source file as script >&2
 usage
     $I_AM -h | --help
-    $I_AM [-f | -c | -w | -o OPTIONS | -i | -l | -s SUFFIX]... ( PROGRAM | -r PROGRAM ) ARGS
+    $I_AM [-f | -c | -w | -o OPTIONS | -p POST_OPTIONS | -i | -l | -s SUFFIX]... ( PROGRAM | -r PROGRAM ) ARGS
   PROGRAM one source file,
       placed in current directory, or in directory which containing in \$PATH
       (if does not find - return 2)
-  OPTIONS - options which is getting to compiler
+  OPTIONS - options which are getting to compiler
+  POST_OPTIONS - arguments which are getting to compiler AFTER source name (use it for adding libraries)
     OPTIONS must be one argument to this script, so if its several - put its in quotes
     and its must not contain unresolved variables, so if its contain ones - put its in double quotes, to bash resolve ones
     also if defined environment variable RUNCPP_OPTIONS, it used as options
@@ -61,6 +62,11 @@ while [ $# -gt 0 -a -z "$cppname" ]; do
 	    #echo option -o
 	    [ $# -lt 2 ] && printhelp 1
 	    options="$options $2"
+	    shift; shift  ;;
+	-p)
+	    #echo option -p
+	    [ $# -lt 2 ] && printhelp 1
+	    post_options="$2"
 	    shift; shift  ;;
 	-s)
 	    #echo option -s
@@ -155,10 +161,10 @@ compile()
 # ????? почему вывод в stdout не работает, если  вывод g++ не перенаправлять в stdout ???
     if [ $clang == 1 ] ;then
 	echo "runcpp: clang++ $cppname (options = $options)" >&2
-	clang++ $options "$cppname" -o "$exename"
+	clang++ $options "$cppname" -o "$exename" $post_options
     else
 	echo "runcpp: g++ $cppname (options = $options)" >&2
-	g++ $options "$cppname" -o "$exename" 2>&1 | awk 'NR<=40;  END {print "runcpp: compile messages lines " NR}' >&2
+	g++ $options "$cppname" -o "$exename" $post_options 2>&1 | awk 'NR<=40;  END {print "runcpp: compile messages lines " NR}' >&2
 #    g++ -I"$YADISK_PATH"/_programming/_src/include/ "$cppname" -o "$exename" 2>&1 | tee >(sleep 1; wc -l >&2; echo \^ total lines >&2) | cat | head -n 40
 	#нужно больше котиков
     fi
