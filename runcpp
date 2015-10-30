@@ -8,16 +8,17 @@ printhelp()
 $I_AM - allow run one source file as script >&2
 usage
     $I_AM -h | --help
-    $I_AM [-f | -c | -w | -o OPTIONS | -p POST_OPTIONS | -i | -l | -s SUFFIX]... ( PROGRAM | -r PROGRAM ) ARGS
+    $I_AM [-f | -c | -w | -o OPTIONS | -p POSTOPTIONS | -i | -l | -s SUFFIX]... ( PROGRAM | -r PROGRAM ) ARGS
   PROGRAM one source file,
       placed in current directory, or in directory which containing in \$PATH
       (if does not find - return 2)
   OPTIONS - options which are getting to compiler
-  POST_OPTIONS - arguments which are getting to compiler AFTER source name (use it for adding libraries)
+  POSTOPTIONS - arguments which are getting to compiler AFTER source name (use it for adding libraries)
     OPTIONS must be one argument to this script, so if its several - put its in quotes
     and its must not contain unresolved variables, so if its contain ones - put its in double quotes, to bash resolve ones
-    also if defined environment variable RUNCPP_OPTIONS, it used as options
+    also if defined environment variable RUNCPP_OPTIONS or RUNCPP_POSTOPTIONS, it used as options (or post_options)
     if -o OPTIONS is defined in command line - it added throw space to options defined in RUNCPP_OPTIONS
+    if -p POSTOPTIONS is defined in command line - it added throw space to options defined in RUNCPP_POSTOPTIONS
   SUFFIX - will be added to EXENAME (and if default suffix exit, it replace it)
     also if suffix is .i will be added option -E for stop after preprocessing
     and if suffix is .s will be added option -S for stop after assembling
@@ -47,6 +48,9 @@ EOF
 if [ -n "$RUNCPP_OPTIONS" ]; then
     options="$RUNCPP_OPTIONS"
 fi
+if [ -n "$RUNCPP_POSTOPTIONS" ]; then
+    post_options="$RUNCPP_POSTOPTIONS"
+fi
 force=0
 onlycompile=0
 whichonly=0
@@ -66,7 +70,7 @@ while [ $# -gt 0 -a -z "$cppname" ]; do
 	-p)
 	    #echo option -p
 	    [ $# -lt 2 ] && printhelp 1
-	    post_options="$2"
+	    post_options="$post_options $2"
 	    shift; shift  ;;
 	-s)
 	    #echo option -s
