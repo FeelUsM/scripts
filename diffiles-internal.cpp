@@ -1,10 +1,11 @@
 #include <iostream>
-#define one_source
-#include "../projs/common-parse-lib/strin.h"
+#define ONE_SOURCE
+#include <strstr/strin.h>
 #include <vector>
 #include <algorithm>
 #include <string>
 #include <stdlib.h>
+#include <time.h>
 using std::cerr;
 using std::cout;
 using std::endl;
@@ -69,39 +70,41 @@ todo:
 при выводе undetected: если все - или все +, то их в создание/удаление
 */
 
-ostream & operator<<(ostream & str, const pair<pair<char,string>,pair<int,int>> & it);
-ostream & operator<<(ostream & str, const vector<pair<pair<char,string>,pair<int,int>>> & );
-void print_changed(ostream & str, const vector<pair<pair<char,string>,pair<int,int>>> & );
-void print_moved(ostream & str, const vector<pair<pair<char,string>,pair<int,int>>> & );
-void print_delited_added(ostream & str, const vector<pair<pair<char,string>,pair<int,int>>> & );
+ostream & operator<<(ostream & str, const pair<pair<char,string>,pair<long long,int>> & it);
+ostream & operator<<(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & );
+void print_changed(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & );
+void print_moved(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & );
+void print_delited_added(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & );
 template <class it_t>
-void read_diff(it_t & strin, vector<pair<pair<char,string>,pair<int,int>>> * diff, bool inverse);
+void read_diff(it_t & strin, vector<pair<pair<char,string>,pair<long long,int>>> * diff, bool inverse);
+
 
 int main(int argc, const char * argv[])
 {
 	bool inverse=(argc==2 && argv[1][0]=='-' && argv[1][1]=='i' && argv[1][2]==0);
-	vector<pair<pair<char,string>,pair<int,int>>> diff;//-+,path , size,date
+	vector<pair<pair<char,string>,pair<long long,int>>> diff;//-+,path , size,date
 	read_diff(strin,&diff,inverse);
-	
+
 	std::sort(diff.begin(),diff.end(),
-		[](const pair<pair<char,string>,pair<int,int>> & l, const pair<pair<char,string>,pair<int,int>> & r){
+		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
 			return l.first.second<r.first.second || l.first.second==r.first.second && l.first.first>r.first.first;
 			//path, -+
 	});
 	//cout<<"=== before changed === "<<endl<<diff<<endl;
-	vector<pair<pair<char,string>,pair<int,int>>> changed;//-+,path , size,date
+	vector<pair<pair<char,string>,pair<long long,int>>> changed;//-+,path , size,date
 	auto end1 = antiuniq_copy_remove(diff.begin(),diff.end(),back_inserter(changed),
-		move(make_pair(move(make_pair('\0',move(string("")))),move(make_pair(0,0)))),
-		[](const pair<pair<char,string>,pair<int,int>> & l, const pair<pair<char,string>,pair<int,int>> & r){
+		move(make_pair(move(make_pair('\0',move(string("")))),move(make_pair((long long)0,0)))),
+		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
 			return l.first.second==r.first.second;
 			//path
 	});
+
 	print_changed(cout,changed);
 	size_t s=end1-diff.begin();
 	while(diff.size()>s)	diff.pop_back();
 
 	std::sort(diff.begin(),diff.end(),
-		[](const pair<pair<char,string>,pair<int,int>> & l, const pair<pair<char,string>,pair<int,int>> & r){
+		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
 			return l.second.first<r.second.first || l.second.first==r.second.first && l.second.second<r.second.second
 			|| l.second.first==r.second.first && l.second.second==r.second.second && l.first.first>r.first.first;
 			//size, date, -+
@@ -110,16 +113,17 @@ int main(int argc, const char * argv[])
 	//cout<<"=== before moved === "<<endl<<diff<<endl;
 	changed.clear();
 	end1 = antiuniq_copy_remove(diff.begin(),diff.end(),back_inserter(changed),
-		move(make_pair(move(make_pair('\0',move(string("")))),move(make_pair(0,0)))),
-		[](const pair<pair<char,string>,pair<int,int>> & l, const pair<pair<char,string>,pair<int,int>> & r){
+		move(make_pair(move(make_pair('\0',move(string("")))),move(make_pair((long long)0,0)))),
+		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
 			return l.second.first==r.second.first && l.second.second==r.second.second;
 			//size, date
 	});
+
 	s=end1-diff.begin();
 	while(diff.size()>s)	diff.pop_back();
 	end1 = antiuniq_copy_remove(changed.begin(),changed.end(),back_inserter(diff),
-		move(make_pair(move(make_pair('\0',move(string("")))),move(make_pair(0,0)))),
-		[](const pair<pair<char,string>,pair<int,int>> & l, const pair<pair<char,string>,pair<int,int>> & r){
+		move(make_pair(move(make_pair('\0',move(string("")))),move(make_pair((long long)0,0)))),
+		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
 			return l.second.first==r.second.first && l.second.second==r.second.second && l.first.first==r.first.first;
 			//size, date, +-
 		}
@@ -129,16 +133,17 @@ int main(int argc, const char * argv[])
 	print_moved(cout,changed);
 	
 	std::sort(diff.begin(),diff.end(),
-		[](const pair<pair<char,string>,pair<int,int>> & l, const pair<pair<char,string>,pair<int,int>> & r){
+		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
 			return l.first.first>r.first.first || l.first.first==r.first.first && l.first.second<r.first.second;
 			//-+, path
 	});
 	print_delited_added(cout,diff);
 }
-ostream & operator<<(ostream & str, const pair<pair<char,string>,pair<int,int>> & it){
+
+ostream & operator<<(ostream & str, const pair<pair<char,string>,pair<long long,int>> & it){
 	return str<<it.first.first<<it.second.first<<'\t'<<it.second.second<<'\t'<<it.first.second;
 }
-ostream & operator<<(ostream & str, const vector<pair<pair<char,string>,pair<int,int>>> & vec){
+ostream & operator<<(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & vec){
 	for(auto it=vec.begin(); it!=vec.end(); it++)
 		str<<*it<<endl;
 	return str;
@@ -157,7 +162,42 @@ std::ostream & operator<<(std::ostream & str, quote_out q){
 	return str;
 }
 
-void print_changed(ostream & str, const vector<pair<pair<char,string>,pair<int,int>>> & vec){
+struct datetime{
+	time_t tt;
+	datetime(time_t tttt):tt(tttt){}
+};
+std::ostream & operator<<(std::ostream & str, datetime dt){
+	tm * ptime = localtime(&dt.tt);
+	using namespace std;
+	return str<<setfill('0')<<setw(2)<<(ptime->tm_year+1900)<<"-"
+		<<setfill('0')<<setw(2)<<(ptime->tm_mon+1)<<"-"
+		<<setfill('0')<<setw(2)<<(ptime->tm_mday)<<"@"
+		<<setfill('0')<<setw(2)<<ptime->tm_hour<<"-"
+		<<setfill('0')<<setw(2)<<ptime->tm_min<<"-"
+		<<setfill('0')<<setw(2)<<ptime->tm_sec;
+}
+
+struct bytes{
+	long long b;
+	bytes(long long x):b(x){}
+};
+std::ostream & operator<<(std::ostream & str, bytes bb){
+	int x;
+	if(x=bb.b/1024/1024/1024)
+		str<<x<<"GB ";
+	bb.b%=(1024*1024*1024);
+	if(x=bb.b/1024/1024)
+		str<<x<<"MB ";
+	bb.b%=(1024*1024);
+	if(x=bb.b/1024)
+		str<<x<<"kB ";
+	bb.b%=(1024);
+	if(x=bb.b)
+		str<<x<<"B";
+	return str;
+}
+
+void print_changed(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & vec){
 	if(vec.empty())	return;
 	cout<<"# === changed ==="<<endl;//<<vec<<endl;
 	for(auto it=vec.begin(); it!=vec.end(); it++){
@@ -166,7 +206,7 @@ void print_changed(ostream & str, const vector<pair<pair<char,string>,pair<int,i
 			exit(1);
 		}
 		const char * sss = it->first.second.c_str();
-		int old_size = it->second.first;
+		long long old_size = it->second.first;
 		it++;
 		if(it->first.first!='+'){
 			cerr<<"diffiles: ERROR: changed: expected file '+'"<<endl<<*it<<endl;
@@ -177,12 +217,12 @@ void print_changed(ostream & str, const vector<pair<pair<char,string>,pair<int,i
 			exit(1);
 		}
 		str <<"git add \""<<quote_out(it->first.second.c_str())<<"\" "
-			<<"#from "<<old_size<<" to "<<it->second.first<<" at "<<it->second.second<<endl;
+			<<"#from "<<bytes(old_size)<<" to "<<bytes(it->second.first)<<" at "<<datetime(it->second.second)<<endl;
 	}
 }
-void print_moved(ostream & str, const vector<pair<pair<char,string>,pair<int,int>>> & vec){
+void print_moved(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & vec){
 	if(vec.empty())	return;
-	vector<pair<pair<char,string>,pair<int,int>>> undetected;
+	vector<pair<pair<char,string>,pair<long long,int>>> undetected;
 	str<<"#=== moved ==="<<endl;
 	auto first = vec.begin();
 	auto last = vec.end();
@@ -200,7 +240,7 @@ met:
 			auto it = first;
 			if(it->first.first!='-')
 				goto met;
-			pair<int,int> sss = it->second;
+			pair<long long,int> sss = it->second;
 			const char * name = it->first.second.c_str();
 			it++;
 			if(it->first.first!='+')
@@ -208,7 +248,7 @@ met:
 			if(it->second.first!=sss.first || it->second.second!=sss.second)
 				goto met;
 			str	<<"git mv \""<<quote_out(name)<<"\" \""<<quote_out(it->first.second.c_str())<<'"'
-				<<" # "<<it->second.first<<endl;
+				<<" # "<<bytes(it->second.first)<<endl;
 		}
 		first=next;
 	}
@@ -218,24 +258,24 @@ met:
 	for(auto it=undetected.begin(); it!= undetected.end(); it++)
 		str<<"#"<<*it<<endl;
 }
-void print_delited_added(ostream & str, const vector<pair<pair<char,string>,pair<int,int>>> & vec){
+void print_delited_added(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & vec){
 	if(vec.empty())	return;
 	auto it=vec.begin();
 	if(it->first.first=='-'){
 		cout<<"#=== deleted ==="<<endl;//<<vec<<endl;
 		for(; it!=vec.end() && it->first.first=='-'; it++)
 			str <<"git rm \""<<quote_out(it->first.second.c_str())<<'"'
-				<<" # "<<it->second.first<<endl;
+				<<" # "<<bytes(it->second.first)<<endl;
 	}
 	if(it==vec.end()) return;
 	str<<endl<<"#=== added ==="<<endl;
 	for(; it!=vec.end() && it->first.first=='+'; it++)
 		str <<"git add \""<<quote_out(it->first.second.c_str())<<'"'
-			<<" # "<<it->second.first<<" at "<<it->second.second<<endl;
+			<<" # "<<bytes(it->second.first)<<" at "<<datetime(it->second.second)<<endl;
 }
 
 template <class it_t>
-void read_diff(it_t & strin, vector<pair<pair<char,string>,pair<int,int>>> * diff, bool inverse){
+void read_diff(it_t & strin, vector<pair<pair<char,string>,pair<long long,int>>> * diff, bool inverse){
 	read_start_line(strin);
 	if(!read_fix_str(strin,"---")){
 		cerr<<"на позиции "<<linecol(strin)<<" ожидалось '---'"<<endl;
@@ -258,7 +298,8 @@ void read_diff(it_t & strin, vector<pair<pair<char,string>,pair<int,int>>> * dif
 		}
 		char c;
 		string path;
-		int size, date;
+		long long size;
+		int date;
 		#define ifnot(expr)	if(!(expr))
 		ifnot(read(strin)>>charclass_c(make_span("+-"),&c)>>dec(&size)>>'\t'>>dec(&date)
 						>>'\t'>>until_charclass(spn_crlf,&path)){

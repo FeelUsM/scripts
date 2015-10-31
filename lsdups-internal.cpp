@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
-#define one_source
-#include <strstrlib/strin.h>
+#define ONE_SOURCE
+#include <strstr/strin.h>
 #include <string>
 #include <algorithm>
 #include <vector>
@@ -191,9 +191,9 @@ openssl md5 "файл" "файл" файл...
 */
 
 
-typedef pair<string,pair<int,int>> sii_t;
+typedef pair<string,pair<long long,int>> sii_t;
 typedef vector<sii_t> sii_cont;
-typedef multimap<string,pair<string,int>> hps_t;
+typedef multimap<string,pair<string,long long>> hps_t;
 int read_files(const char * name_of_files, sii_cont * ppsd);
 int read_hashes(const char * name_of_hashes, 
 	map<decltype(sii_t().first),decltype(sii_t().second)> * ppsd2,
@@ -218,7 +218,7 @@ int main(int argc, const char * argv[]){
 		return errcode;
 	if(psd.empty())	cerr<<"files empty"<<endl;
 	std::sort(psd.begin(),psd.end(),
-		[](const pair<string,pair<int,int>> & l, const pair<string,pair<int,int>> & r){
+		[](const pair<string,pair<long long,int>> & l, const pair<string,pair<long long,int>> & r){
 			return l.second.first<r.second.first;//size
 		}
 	);
@@ -229,7 +229,7 @@ int main(int argc, const char * argv[]){
 	//=== ищем кандидатов по размеру ===
 	map<decltype(sii_t().first),decltype(sii_t().second)> psd2;
 	antiuniq_copy(psd.begin(),psd.end(),inserter(psd2,psd2.end()),
-		[](const pair<string,pair<int,int>> & l, const pair<string,pair<int,int>> & r){
+		[](const pair<string,pair<long long,int>> & l, const pair<string,pair<long long,int>> & r){
 			return l.second.first==r.second.first;//size
 		}
 	);
@@ -249,7 +249,7 @@ int main(int argc, const char * argv[]){
 	}
 	//for(auto it=hps.begin(); it!=hps.end(); it++)
 	//	cout <<it->first<<'\t'<<it->second.second<<'\t'<<it->second.first<<endl;
-	antiuniq(&hps,[](const pair<string,pair<string,int>> & l, const pair<string,pair<string,int>> & r)
+	antiuniq(&hps,[](const pair<string,pair<string,long long>> & l, const pair<string,pair<string,long long>> & r)
 		{	return l.first==r.first;	});
 	cerr <<hps.size()<<" файлов c одинаковым MD5"<<endl;
 	
@@ -357,7 +357,7 @@ int calc_and_write_hashes(const char * name_of_hashes,
 			){
 				cerr<<"файл "<<ppsd2->begin()->first<<" не посчитался"<<endl;
 				ppsd2->erase(ppsd2->begin());
-				if(ppsd2->size()%100==0) cerr<<"осталось "<<ppsd2->size()/100<<endl;
+				if(ppsd2->size()%100==0 && ppsd2->size()!=0) cerr<<"осталось "<<ppsd2->size()/100<<endl;
 			}
 			//cerr <<"после цикла"<<endl;
 			if(ppsd2->begin()==it){	dump(md5.iter(),"не понятно, что посчитал openssl md5:\n");	return 1;	}
@@ -379,7 +379,7 @@ int calc_and_write_hashes(const char * name_of_hashes,
 void print_simple(const hps_t & hps){
 	//=== вывести простым способом ===
 	auto sss=hps.cbegin();
-	int size=0;
+	long long size=0;
 	cout<<"///"<<hps.cbegin()->second.second<<endl;
 	for(auto it=hps.cbegin(); it!=hps.cend(); it++){
 		if(it->first!=sss->first){
@@ -394,14 +394,14 @@ void print_simple(const hps_t & hps){
 }
 
 void print_script_rmfiles(hps_t * phps){
-	map<string,map<string,multimap<int,set<string>>>> dups;//comm_path,ext,size,diff_path
-	int tot_size=0;
+	map<string,map<string,multimap<long long,set<string>>>> dups;//comm_path,ext,size,diff_path
+	long long tot_size=0;
 	//=== сгруппировать по стартовым директориям и расширениям ===
 																		//cerr<<"///"<<phps->begin()->second.second<<endl;
 																		//cerr<<"итого "<<bytes(tot_size)<<" избыточного"<<endl;
 	if(phps->begin()!=phps->end()){
 		auto sss=phps->begin();
-		int size= (phps->begin()==phps->end()) ? 0 : phps->begin()->second.second;
+		long long size= (phps->begin()==phps->end()) ? 0 : phps->begin()->second.second;
 		set<string> ldups;//файлы
 		for(auto it=phps->begin(); true; it++){
 			if(it==phps->end() || it->first!=sss->first){//вышли за предел повт. файлов или за предел массива
@@ -448,13 +448,13 @@ void print_script_rmfiles(hps_t * phps){
 	for(auto it_compath=dups.begin(); it_compath!=dups.end(); it_compath++){
 		if(!it_compath->first.empty())
 			cout 		<<"cd \""<<quote_out(it_compath->first.c_str())<<"\"";
-		int size=0;
+		long long size=0;
 		for(auto it_comext=it_compath->second.begin(); it_comext!=it_compath->second.end(); it_comext++)
 			for(auto it_size=it_comext->second.begin(); it_size!=it_comext->second.end(); it_size++)
 				size+=it_size->first*(it_size->second.size()-1);
 			cout << " #"<<bytes(size);
 		for(auto it_comext=it_compath->second.begin(); it_comext!=it_compath->second.end(); it_comext++){
-			int size=0;
+			long long size=0;
 			for(auto it_size=it_comext->second.begin(); it_size!=it_comext->second.end(); it_size++)
 				size+=it_size->first*(it_size->second.size()-1);
 			if(it_comext->first.size()>0)
@@ -552,7 +552,7 @@ void print_script_rmdirs(const hps_t * phps, const sii_cont & psd){
 	//=== сформировать ГФы ===
 	struct GF{
 		map<vector<string>,bool,my_less> paths;
-		int size;
+		long long size;
 	};
 	map<string,GF> GFs;//по хешу
 	

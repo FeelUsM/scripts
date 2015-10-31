@@ -21,7 +21,7 @@ EOF
 
 [ "$1" == -h -o "$1" == --help ] && printhelp 0
 
-datetime=$(date '+%F-%H:%M:%S')
+datetime=$(date '+%F@%H-%M-%S')
 files=.files/$datetime-files
 dirs=.files/$datetime-dirs
 oldfiles="$(ls -1 .files/20*-files .files/19*-files .files/21*-files 2>/dev/null | sort -r | head -n 1)"

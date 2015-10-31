@@ -74,7 +74,7 @@ int main(int argc, char * argv[])
 				readuntilspace(&p); readspaces(&p); //printf("after 4 readuntilspace p = %s \n",p);
 					int err=0;
 					errno=0;
-				size_t s = strtol(p,&p,10);  readspaces(&p); //printf("size=%d\n",s);
+				long long s = strtoll(p,&p,10);  readspaces(&p); //printf("size=%d\n",s);
 					if(errno){	fprintf(stderr,"size of file is overflow\n");	err=1;	}
 					errno=0;
 				int date = strtol(p,&p,10);  readspaces(&p);
@@ -83,7 +83,7 @@ int main(int argc, char * argv[])
 					if(err)	fprintf(stderr,"%s/%s\n",curpath,p);
 				//printf("add %10.10d %s/%s\n",s,curpath,p);                                  //!!!
 				//sdp.insert(make_pair(s,make_pair(date,string(curpath)+'/'+string(p))));
-				fprintf(sapid,"%c\t%d\t%d\t%s/%s\n",type,s,date,curpath,p);
+				fprintf(sapid,"%c\t%lld\t%d\t%s/%s\n",type,s,date,curpath,p);
 			}
 			else{
 				readuntilspace(&p); readspaces(&p); //printf("after 1 readuntilspace p = \"%s\" \n",p);
@@ -92,7 +92,7 @@ int main(int argc, char * argv[])
 				readuntilspace(&p); readspaces(&p); //printf("after 4 readuntilspace p = %s \n",p);
 					int err=0;
 					errno=0;
-				size_t s = strtol(p,&p,10);  readspaces(&p); //printf("size=%d\n",s);
+				long long s = strtoll(p,&p,10);  readspaces(&p); //printf("size=%d\n",s);
 					if(errno){	fprintf(stderr,"size of file is overflow\n");	err=1;	}
 					errno=0;
 				int date = strtol(p,&p,10);  readspaces(&p);
@@ -102,7 +102,7 @@ int main(int argc, char * argv[])
 				//printf("add %10.10d %s/%s\n",s,curpath,p);                                  //!!!
 				//sdp.insert(make_pair(s,make_pair(date,string(curpath)+'/'+string(p))));
 				if(!dot_files)
-					fprintf(out,"%d\t%d\t%s/%s\n",s,date,curpath,p);
+					fprintf(out,"%lld\t%d\t%s/%s\n",s,date,curpath,p);
 			}	  
 		}
 		//           getchar();
