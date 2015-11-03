@@ -9,7 +9,7 @@ fi
 files="$(ls -1 .files/20*-files .files/19*-files .files/21*-files 2>/dev/null | sort -r | head -n 1)"
 [ -z "$files" ] && echo lsdups: can not get files file >&2 && exit 1
 
-runcpp -o '-std=gnu++11 -O0' lsdups-internal.cpp "$files" .files/hashes > .files/rmdups
+runcpp -o '-std=gnu++11 -O3' lsdups-internal.cpp "$files" .files/hashes > .files/rmdups || { echo rmdups not created; exit 1; }
 chmod +x .files/rmdups
 
 if [ ! -f .files/rmdups-persist ]; then
