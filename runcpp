@@ -96,14 +96,14 @@ while [ $# -gt 0 -a -z "$cppname" ]; do
 	-r)
 	    #echo option -r
 	    [ $# -lt 2 ] && printhelp 1
-	    cppname=$1
+	    cppname="$1"
 	    shift; shift  ;;
 	-*)
 	    #echo option '-*' "$1"
 	    printhelp 1 ;;
 	*)
 	    #echo option cppname "$1"
-	    cppname=$1
+	    cppname="$1"
 	    shift  ;;
     esac
 done
@@ -137,7 +137,7 @@ else
     fi
 fi
 [ ! -e "$cppname" ] && { echo runcpp: "$cppname" does not found >&2 ;  exit 2; }
-[ $whichonly == 1 ] && { echo $cppname; exit 0; }
+[ $whichonly == 1 ] && { echo "$cppname"; exit 0; }
 
 #=== evaluate exename ===
 if [[ "$cppname" == *.cpp ]] ; then exename="${cppname%.cpp}"
@@ -148,12 +148,12 @@ else if [[ "$cppname" == *.c ]] ; then exename="${cppname%.c}"
 	       fi; fi; fi; fi;
 if [ "$suffix" == ".s" ]; then
     options="$options -S";
-    exename="$(dirname $exename)/$(basename $exename)$suffix"
+    exename="$(dirname "$exename")/$(basename "$exename")$suffix"
 else if [ "$suffix" == ".i" ]; then
 	 options="$options -E";
-         exename="$(dirname $exename)/$(basename $exename)$suffix"
+         exename="$(dirname "$exename")/$(basename "$exename")$suffix"
      else
-	 exename="$(dirname $exename)/.$(basename $exename)$suffix"
+	 exename="$(dirname "$exename")/.$(basename "$exename")$suffix"
      fi; fi
 #если не указано .exe то оно не только запускается, но и на существование и на определение времени работает правильно
 if [ $(uname -o) == "Cygwin" -a -z "$suffix" ]; then exename="$exename".exe; fi
@@ -226,8 +226,8 @@ if [[ "$exename" == *.i ]] || [[ "$exename" == *.s ]]; then
 else
     if [[ "$exename" == /* ]]
     then 
-	exec $exename $@
+	exec "$exename" "$@"
     else
-	exec ./$exename $@
+	exec "./$exename" "$@"
     fi
 fi
