@@ -1,22 +1,49 @@
 #! /bin/bash
 
-if [ $# == 1 -a "$1" == "--no-ls" ]; then
-:
+printargs(){ 
+	while [ $# -gt 0 ]; do 
+		echo "$1"
+		shift
+	done 
+}
+
+#echo lsdups arguments:
+#printargs "$@"
+
+if [ $# != 1 -a "$1" == "--no-ls" ]; then
+	shift
 else
 	echo ll2lpath: >&2
-	ll2lpath
+	ll2lpath "$@"
 fi
-files="$(ls -1 .files/20*-files .files/19*-files .files/21*-files 2>/dev/null | sort -r | head -n 1)"
+
+echo after ll2lpath
+
+if [ $# == 0 ]; then
+	wd=.files
+	mkdir -p "$wd"
+else
+	wd="$1"
+	shift
+fi
+
+files="$(ls -1 "$wd"/20*-files "$wd"/19*-files "$wd"/21*-files 2>/dev/null | sort -r | head -n 1)"
 [ -z "$files" ] && echo lsdups: can not get files file >&2 && exit 1
 
-runcpp -o '-std=gnu++11 -O3' lsdups-internal.cpp "$files" .files/hashes > .files/rmdups || { echo rmdups not created; exit 1; }
-chmod +x .files/rmdups
+#printargs "$files" "$wd"/hashes 
 
-if [ ! -f .files/rmdups-persist ]; then
-	if [ -s .files/rmdups ]; then  
-		echo lsdups: .files/rmdups-persist не создан
+runcpp -o '-std=gnu++11 -O3' lsdups-internal.cpp "$files" "$wd"/hashes > "$wd"/rmdups || { echo rmdups not created; exit 1; }
+chmod +x "$wd"/rmdups
+
+if [ ! -f "$wd"/rmdups-persist ]; then
+	if [ -s "$wd"/rmdups ]; then  
+		echo lsdups: "$wd"/rmdups-persist не создан
+		grep '^\(#====\|#----\)' "$wd"/rmdups
+	else
+		echo дублирующиеся файлы отсутствуют
 	fi
 else
-	echo lsdups: Изменеия в дубликатах по сравнению с .files/rmdups-persist
-	diff -u3 <(tail -n +2 .files/rmdups-persist) <(tail -n +2 .files/rmdups) | grep -v '^+++' | grep -v '^---' 
+	echo lsdups: Изменеия в дубликатах по сравнению с .files/rmdups-persist \
+ \( $(	diff -u3 "$wd"/rmdups-persist "$wd"/rmdups | wc -l ) \):
+	diff -u3 <(grep '^\(#====\|#----\)' "$wd"/rmdups-persist) <(grep '^\(#====\|#----\)' "$wd"/rmdups) | grep -v '^\(+++\|---\)'
 fi

@@ -155,7 +155,7 @@ quote_out(const char * ss):s(ss){}
 std::ostream & operator<<(std::ostream & str, quote_out q){
 	const char * s=q.s;
 	while(*s){
-		if(*s=='\"' || *s=='\\' || *s=='$')
+		if(*s=='\"' || *s=='\\' || *s=='$' || *s=='`')
 			str<<'\\';
 		str <<*s++;
 	}

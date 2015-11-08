@@ -19,37 +19,103 @@ EOF
 	exit $1
 }
 
+myecho(){
+#	echo "$@"
+	:
+}
+
+printargs(){ 
+	while [ $# -gt 0 ]; do 
+		myecho "$1"
+		shift
+	done 
+}
+
+myecho ll2lpath arguments:
+printargs "$@"
+
 [ "$1" == -h -o "$1" == --help ] && printhelp 0
+if [ $# == 0 ]; then
+	wd=.files
+	mkdir -p "$wd"
+else
+	wd="$1"
+	shift
+	mkdir -p "$wd"
+	if [ !  -s "$wd/dirconfig" ]; then
+		#на пустоту $@ не проверяем
+		while [ $# != 0 ]; do
+			printf ' "' >> "$wd/dirconfig"
+			printf "$1" | sed 's/\\/\\\\/g; s/\$/\\\$/g; s/"/\\"/g; s/`/\\`/g' >> "$wd/dirconfig"
+			shift
+			printf '"' >> "$wd/dirconfig"
+		done
+	fi
+	if [ -s "$wd/dirconfig" ]; then
+		args="$(cat "$wd/dirconfig")"
+		[ $# != 0 ] && [ "$(echo "$@")" != "$(eval echo "$args")" ] && {
+			echo директории "$wd" сопоставлены:
+			eval printargs "$args"
+			echo а запрашивается
+			printargs $@
+			exit 1
+		}
+	fi
+fi
 
-datetime=$(date '+%F@%H-%M-%S')
-files=.files/$datetime-files
-dirs=.files/$datetime-dirs
-oldfiles="$(ls -1 .files/20*-files .files/19*-files .files/21*-files 2>/dev/null | sort -r | head -n 1)"
-olddirs=${oldfiles%-files}-dirs
+
+myecho "$wd"
+myecho аргументы
+eval printargs "$args"
+#exit
 
 
-mkdir -p .files
-ls -alR --time-style=+%s    2>.files/ls-log | tee >(grep '^./' > $dirs) |
-    runcpp ll2lpath-internal.c $files .files/log .files .sync .git
+datetime=$(date '+%F %H-%M-%S')
+files="$wd/$datetime-files"
+dirs="$wd/$datetime-dirs"
+oldfiles="$(ls -1 "$wd"/20*-files "$wd"/19*-files "$wd"/21*-files 2>/dev/null | sort -r | head -n 1)"
+olddirs="${oldfiles%-files}-dirs"
+myecho files = "$files"
+myecho dirs = "$dirs"
+myecho oldfiles = "$oldfiles"
+myecho olddirs = "$olddirs"
+
+eval ls -alR --time-style=+%s "$args"   2>"$wd"/ls-log | tee >(grep ':$' > "$wd"/last-dirs) |
+    runcpp ll2lpath-internal.c "$wd"/last-files "$wd"/log "$wd" .sync .git
+#в "$wd"/last-dirs также будут попадать файлы, заканчивающиеся на :
 [ "${PIPESTATUS[2]}" != 0 ] && exit 1
+mv "$wd"/last-files "$files"
+mv "$wd"/last-dirs "$dirs"
 
-if  [ -s "$oldfiles" -a -s "$olddirs" ] && 
-	[ $(ls -1 .files/20*-files .files/19*-files .files/21*-files 2>/dev/null | wc -l) -gt 2 ] &&
-	[ "$(diff $oldfiles $files)" == "" -a "$(diff $olddirs $dirs)" == "" ]; then
-	rm $files $dirs
+if  
+	[ -e "$oldfiles" ] &&
+	myecho oldfiles exitst &&
+	[ -s "$oldfiles" ] &&
+	myecho and not empty &&
+	[ -e "$olddirs" ] && 
+	myecho olddirs exitst &&
+	[ -s "$olddirs" ] && 
+	myecho and not empty &&
+	[ $(ls -1 "$wd"/20*-files "$wd"/19*-files "$wd"/21*-files 2>/dev/null | wc -l) -gt 1 ] &&
+	myecho number of snapshots greater than 2 &&
+	[ "$(diff "$oldfiles" "$files")" == "" -a "$(diff "$olddirs" "$dirs")" == "" ]
+  then
+	rm "$files" "$dirs"
 	echo ничего нового
 else
-	echo $files $dirs >> .files/list
-	echo созданы $files $dirs
+	echo "$files"  AND  "$dirs" >> "$wd"/list
+	echo созданы "$files" "$dirs"
 	if  [ -s "$oldfiles" -a -s "$olddirs" ] ; then
-		diff $oldfiles $files -u0 | runcpp diffiles-internal.cpp
-		diff $olddirs $dirs
+		echo отличие от "$oldfiles":
+		diff "$oldfiles" "$files" -u0 | runcpp diffiles-internal.cpp
+		echo отличие от "$olddirs":
+		diff "$olddirs" "$dirs"
 	fi
 fi
 	
-if [ -s .files/log -o -s .files/ls-log  ]; then # -s - существует и не пуст 
+if [ -s "$wd"/log -o -s "$wd"/ls-log  ]; then # -s - существует и не пуст 
     echo =============== SAPID =============
-    cat .files/log .files/ls-log | tee .files/$datetime-log	
+    cat "$wd"/log "$wd"/ls-log | tee "$wd"/"$datetime"-log	
 fi
 	
-rm .files/log .files/ls-log
+rm "$wd"/log "$wd"/ls-log

@@ -382,7 +382,13 @@ int main(int argc, const char * argv[]){
 
 	int errcode;
 	if(argc!=3)
-	{	cerr << "usage: sldups-internal files-file hashes-file" << endl; return 1;	}
+	{	
+		cerr << "usage: sldups-internal files-file hashes-file" << endl; 
+		cerr<<"geted args:"<<endl;
+		for(int i = 1; i<argc; i++)
+			cerr <<argv[i]<<endl;
+		return 1;	
+	}
 	const char * name_of_files=argv[1];
 	const char * name_of_hashes=argv[2];
 	
@@ -464,6 +470,7 @@ pair<const char *, const char *> str_mismatch(const char * s1, const char *s2){
 	return make_pair(s1,s2);
 }
 
+//возвращает расширение
 const char * find_ext(const string * ps){
 	int dirpos=ps->rfind('/'), extpos=ps->rfind('.');
 	if(extpos>=0 && dirpos<extpos)
@@ -567,18 +574,22 @@ struct GF{
 };
 typedef map<string,GF> GF_cont;//по хешу
 
-//=== сформировать ГФы ===
-void make_GFs(GF_cont * pGFs, const hps_t * phps){
-	for(auto it=phps->cbegin(); it!=phps->cend(); it++){
+//преобразует строку в вектор строк
+vector<string> s2vs(const char * str){
 		vector<string> name;
 		const char * a, * b;
-		a = it->second.first.c_str();
+		a = str;
 		while((b=strchr(a,'/'))!=0){
 			name.push_back(string(a,b));
 			a = b+1;
 		}
 		name.push_back(a);
-		(*pGFs)[it->first].paths.insert(make_pair(move(name),false));
+		return move(name);
+}
+//=== сформировать ГФы ===
+void make_GFs(GF_cont * pGFs, const hps_t * phps){
+	for(auto it=phps->cbegin(); it!=phps->cend(); it++){
+		(*pGFs)[it->first].paths.insert(make_pair(s2vs(it->second.first.c_str()),false));
 		(*pGFs)[it->first].size = it->second.second;
 	}
 }
@@ -598,7 +609,7 @@ void make_GF0(GF * pGF0, GF_cont * pGFs){
 }
 
 struct size_less{
-	bool operator()(const vector<string> & l, const vector<string> & r){
+	bool operator()(const vector<string> & l, const vector<string> & r)const{
 		if(l.size()!=r.size())
 			return l.size()<r.size();
 		else
@@ -779,7 +790,7 @@ template <class it_t>
 bool operator<(const it_t & l, const it_t & r){
 	return l->first < r->first;
 }
-typedef map<vector<string>,pair<set<GGP_t>,set<GF_cont::const_iterator>>,size_less> GGPsGFs_t;
+typedef map<vector<string>,pair<set<GGP_t>,set<GF_cont::const_iterator>>> GGPsGFs_t;
 
 //=== сформировать ГГПы и разложить их по стартовым папкам ===
 //вырезает элемент у правого и вставляет его в левого
@@ -869,9 +880,10 @@ void make_GGPs(GGPsGFs_t * pGGPs, GGP_t * pGPs){
 					break;
 				}
 		}
-		if(max_eq==0)	throw "max_eq==0";
-			
-		(*pGGPs)[my_head(*union_folders.begin(),max_eq)].first.insert(move(GGP));
+		if(max_eq==0)	
+			(*pGGPs)[vector<string>({string(".")})].first.insert(move(GGP));
+		else
+			(*pGGPs)[my_head(*union_folders.begin(),max_eq)].first.insert(move(GGP));
 	}
 }
 
@@ -898,9 +910,10 @@ void select_GFs(GGPsGFs_t * pGGFs, const GF_cont & GFs){
 						break;
 					}
 			}
-			if(max_eq==0)	throw "max_eq==0";
-				
-			(*pGGFs)[my_head(itgf->second.paths.begin()->first,max_eq)].second.insert(itgf);
+			if(max_eq==0)	
+				(*pGGFs)[vector<string>({string(".")})].second.insert(itgf);
+			else
+				(*pGGFs)[my_head(itgf->second.paths.begin()->first,max_eq)].second.insert(itgf);
 		}
 	break_continue3:
 		;
@@ -919,43 +932,100 @@ bool end_by(const vector<string> & base, const vector<string> & end){
 void print_GGX(const GGPsGFs_t & GGX, const sii_cont & psd){
 	using namespace io_util;
 	for(auto itpath=GGX.begin(); itpath!=GGX.end(); itpath++){
-		cout<<"#========================================================"<<endl
-			<<"#==== \""<<(itpath->first)<<"\" ===="<<endl;
+		cout<<"#==== \""<<(itpath->first)<<"\" ===="<<endl<<endl;
+		//cerr<<"#==== \""<<(itpath->first)<<"\" ===="<<endl;
+		//вывод групп папок
 		for(auto itggp = itpath->second.first.begin(); itggp!=itpath->second.first.end(); itggp++){
 			//*itggp <-> GGP_t
+			int ggp_size=0;
 			for(auto itgp = itggp->begin(); itgp!=itggp->end(); itgp++){
 				//itgp->first  <-> set<vector<string>,size_less>
 				//itgp->second <-> map<vector<string>,GF_cont::iterator,size_less>
 				long long gp_size=0;
-				cout <<"rmfromdir(){"<<endl;
+				set<string> exts;
+				for(auto itf = itgp->second.begin(); itf!=itgp->second.end(); itf++){
+					exts.insert(string(find_ext(&*prev(itf->first.end()))));
+					gp_size+=itf->second->second.size;
+				}
+				cout<<"rmfromdir(){ # "<<itgp->second.size()<<" файлов, "<<bytes(gp_size);
+					for(auto it = exts.begin(); it!= exts.end(); it++)
+						cout<<' '<<*it;
+				cout<<endl;
+
+				//вывод списка файлов
 				for(auto itf = itgp->second.begin(); itf!=itgp->second.end(); itf++){
 					//itf->first  <-> vector<string>
 					//itf->second <-> pair<string,GF>
-								cout<<"\trm \"$1/"<<itf->first<<"\" "
-									<<"# ("<<bytes(itf->second->second.size)<<") "<<itf->second->first<<endl;
-					gp_size+=itf->second->second.size;
+					cout<<"\trm \"$1/"<<itf->first<<"\" "
+						<<"# ("<<bytes(itf->second->second.size)<<") "<<itf->second->first<<endl;
 					for(auto it = itf->second->second.paths.begin(); it!=itf->second->second.paths.end(); it++)
 						//map<vector<string>,bool,reverse_less> paths;
 						if(!it->second
 							&& !end_by(it->first,itf->first))
 								cout <<"\t#rm -f \""<<(it->first)<<"\""<<endl;
 				}
-				cout <<"} # "<<bytes(gp_size)<<endl;
-				for(auto itp = itgp->first.begin(); itp!=itgp->first.end(); itp++)
-					cout <<"#rmfromdir \""<<(*itp)<<"\""<<endl;
+				cout <<"}"<<endl;
+				ggp_size+= gp_size*(itgp->first.size()-1);
+				
+				//вывод списка папок
+				for(auto itp = itgp->first.begin(); itp!=itgp->first.end(); itp++){
+					string pathdir;
+					for(auto it = itp->begin(); it!=itp->end(); it++)
+						pathdir+=*it+'/';
+					//cout << "pathdir="<<pathdir<<endl;
+					auto file_it = lower_bound(psd.begin(),psd.end(),make_pair(pathdir,make_pair((long long) 0,0)),
+						[](const pair<string,pair<long long,int>> & l, const pair<string,pair<long long,int>> & r){
+							return l.first<r.first;//path
+						}
+					);
+					auto file_it2 = file_it;
+					int other_files=0;
+					while(file_it!=psd.end() && file_it->first.find(pathdir)==0){
+						//cout << file_it->first <<endl;
+						other_files++, file_it++;
+					}
+					other_files -=itgp->second.size();
+					
+					cout <<"#rmfromdir \""<<(*itp)<<"/\""<<" # еще "<<other_files<<" файлов"<<endl;
+					
+					if(other_files<5){
+						file_it = file_it2;
+						for(;file_it!=psd.end() && file_it->first.find(pathdir)==0; file_it++){
+							vector<string> file = s2vs(file_it->first.c_str());
+							file.erase(file.begin(),file.begin()+itp->size());
+							if(itgp->second.find(file)==itgp->second.end())
+								cout<<"# "<<file_it->first<<endl;
+						}
+					}
+				}
 				cout <<endl;
 			}
-			cout<<"#------------------------------------------------"<<endl<<endl;
+			cout<<"#-------- "<<itggp->size()<<" гп, [";
+			for(auto itgp = itggp->begin(); itgp!=itggp->end(); itgp++)
+				cout<<itgp->first.size()<<'x'<<itgp->second.size()<<' ';
+			cout<<"] "<<bytes(ggp_size)<<" --------------------------------------------"<<endl<<endl;
 		}
+		//вывод групп файлов
+		int gf_size=0;
 		for(auto ititgf = itpath->second.second.begin(); ititgf!=itpath->second.second.end(); ititgf++){
-			cout<<"# "<<bytes((*ititgf)->second.size)<<endl;
+			set<string> exts;
+			for(auto it = (*ititgf)->second.paths.begin(); it!=(*ititgf)->second.paths.end(); it++)
+				exts.insert(string(find_ext(&*prev(it->first.end()))));
+			cout<<"# "<<(*ititgf)->second.paths.size()<<" файлов, "<<bytes((*ititgf)->second.size);
+				for(auto it = exts.begin(); it!= exts.end(); it++)
+					cout<<' '<<*it;
+			cout<<endl;
+			gf_size += (*ititgf)->second.size*((*ititgf)->second.paths.size()-1);
 			for(auto it = (*ititgf)->second.paths.begin(); it!=(*ititgf)->second.paths.end(); it++)
 				cout<<"#rm \""<<(it->first)<<"\""<<endl;
 			cout<<endl;
 		}
+		cout<<"#-------- "<<itpath->second.second.size()<<" гф, [";
+		for(auto ititgf = itpath->second.second.begin(); ititgf!=itpath->second.second.end(); ititgf++)
+			cout<<(*ititgf)->second.paths.size()<<' ';
+		cout<<"] "<<bytes(gf_size)<<" --------------------------------------------"<<endl<<endl;
 	}
 }
-
 
 void print_script_rmdirs(const hps_t * phps, const sii_cont & psd){
 	using namespace io_util;

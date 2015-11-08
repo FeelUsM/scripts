@@ -1,2 +1,32 @@
 #! /bin/bash
 
+if [ $# == 0 ]; then
+	wd=.files
+	mkdir -p "$wd"
+else
+	wd="$1"
+	shift
+fi
+
+while read line ; do
+	if [ "$line" == commit ] ; then
+		commit_line="$tmp_commit_line"
+	else
+		tmp_commit_line="$line";
+	fi
+done < "$wd/list"
+
+oldfiles="${commit_line%" $wd/20*dirs"}"
+[ "$oldfiles" == "$commit_line" ] && oldfiles="${commit_line%" $wd/21*dirs"}"
+[ "$oldfiles" == "$commit_line" ] && oldfiles="${commit_line%" $wd/19*dirs"}"
+[ "$oldfiles" == "$commit_line" ] && { echo difffiles: can not separate files from dirs; exit 1; }
+echo "$oldfiles"
+files="$(ls -1 "$wd"/20*-files "$wd"/19*-files "$wd"/21*-files 2>/dev/null | sort -r | head -n 1)"
+
+
+if [ "$oldfiles" != "$files" ]; then
+	diff "$oldfiles" "$files" -u0 | runcpp diffiles-internal.cpp
+else
+	echo изменений нет
+fi
+
