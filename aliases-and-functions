@@ -1,4 +1,6 @@
 #-*- sh -*-
+
+
 #=== wget ===
 alias wgetsite="wget -r -np -k -p -e robots=off -U mozilla --random-wait"
 #-r		 recursive
@@ -59,7 +61,7 @@ myuntar()
 {
     mkdir ${1%.tgz}
     cd ${1%.tgz}
-    tar -zxf ../$1
+    tar -xzf ../$1
     local c=0
     for x in * ; do
 	c=$(($c+1))
@@ -74,11 +76,27 @@ myuntar()
 }
 mytar()
 {
-    tar -cf $1 -o $1.tgz
+    tar -czf $1 -o $1.tgz
 }
 
 #=== zhelp ===
-zbhelp()
+zhelp()
 {
     echo help $1 | bash
 }
+
+TRASH_DIR=~/.trash
+#=== rmt ===
+rmt(){
+    local pat
+    for pat; do
+	case "$pat" in /*) :;; *) pat="$PWD/$pat";; esac
+	local dir="$TRASH_DIR/$(basename "${pat#/}")"
+	echo "pat= $pat dir= $dir"
+	mkdir -p "$dir" &&
+	    cp -ri --preserve=timestamp "$pat" "$dir" &&
+	    rm -rf "$pat"
+    done
+}
+
+#----
