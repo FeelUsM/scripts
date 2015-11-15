@@ -88,14 +88,15 @@ zhelp()
 TRASH_DIR=~/.trash
 #=== rmt ===
 rmt(){
-    local pat
-    for pat; do
-	case "$pat" in /*) :;; *) pat="$PWD/$pat";; esac
+    #echo $@
+    while [ $# -gt 0 ]; do
+	case "$1" in /*) pat="$1";; *) pat="$PWD/$1";; esac
+	shift
 	local dir="$TRASH_DIR/$(dirname "${pat#/}")"
 	#echo "pat= $pat dir= $dir"
-	mkdir -p "$dir" &&
-	    cp -ri --preserve=timestamp "$pat" "$dir" &&
-	    rm -rf "$pat"
+	mkdir -p "$dir" && #echo mkdir OK &&
+	    cp -ri --preserve=timestamp "$pat" "$dir" && #echo cp OK &&
+	    /usr/bin/rm -rf "$pat" #&& echo rm OK
     done
 }
 

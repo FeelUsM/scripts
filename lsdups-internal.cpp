@@ -836,24 +836,29 @@ void make_GGPs(GGPsGFs_t * pGGPs, GGP_t * pGPs){
 					itgp++;
 				else{
 					#if 0
-					cout << "проверяем пересечения union_folders" <<endl;
-					for(auto it = union_folders.begin(); it!=union_folders.end(); it++)
-						cout<<*it<<endl;
-					cout<<"-P-"<<endl;
-					for(auto it = itgp->first.begin(); it!=itgp->first.end(); it++)
-						cout<<*it<<endl;
-					cout<<"-EQ-"<<endl;
-					for(auto it = intersection_folders.begin(); it!=intersection_folders.end(); it++)
-						cout<<*it<<endl;
-					cout << "проверяем пересечения union_GFps" <<endl;
-					for(auto it = union_GFps.begin(); it!=union_GFps.end(); it++)
-						cout<<(void*)*it<<endl;
-					cout<<"-P-"<<endl;
-					for(auto it = from_GFps.begin(); it!=from_GFps.end(); it++)
-						cout<<(void*)*it<<endl;
-					cout<<"-EQ-"<<endl;
-					for(auto it = intersection_GFps.begin(); it!=intersection_GFps.end(); it++)
-						cout<<(void*)*it<<endl;
+						using namespace io_util;
+						cout << "проверяем пересечения union_folders" <<endl;
+						for(typename set<vector<string>,size_less>::const_iterator it = union_folders.cbegin(); 
+								it!=union_folders.cend(); it++){
+							const vector<string> & xx = *it;
+							cout<<xx<<endl;
+						}
+						cout<<"-P-"<<endl;
+						for(auto it = itgp->first.begin(); it!=itgp->first.end(); it++)
+							cout<<*it<<endl;
+						cout<<"-EQ-"<<endl;
+						for(auto it = intersection_folders.begin(); it!=intersection_folders.end(); it++)
+							cout<<*it<<endl;
+						cout << "проверяем пересечения union_GFps" <<endl;
+						for(typename set<GF_cont::const_iterator>::const_iterator it = union_GFps.cbegin(); 
+								it!=union_GFps.cend(); it++)
+							cout<<(*it)->first<<endl;
+						cout<<"-P-"<<endl;
+						for(auto it = from_GFps.begin(); it!=from_GFps.end(); it++)
+							cout<<(*it)->first<<endl;
+						cout<<"-EQ-"<<endl;
+						for(auto it = intersection_GFps.begin(); it!=intersection_GFps.end(); it++)
+							cout<<(*it)->first<<endl;
 					#endif
 						
 					changed = true;
@@ -880,8 +885,9 @@ void make_GGPs(GGPsGFs_t * pGGPs, GGP_t * pGPs){
 					break;
 				}
 		}
-		if(max_eq==0)	
+		if(max_eq==0)	{
 			(*pGGPs)[vector<string>({string(".")})].first.insert(move(GGP));
+		}
 		else
 			(*pGGPs)[my_head(*union_folders.begin(),max_eq)].first.insert(move(GGP));
 	}
@@ -893,29 +899,33 @@ void select_GFs(GGPsGFs_t * pGGFs, const GF_cont & GFs){
 	for(auto itgf = GFs.cbegin(); itgf!=GFs.cend(); itgf++){
 		for(auto it = itgf->second.paths.begin(); it!=itgf->second.paths.end(); it++)
 			if(it->second)
-				goto break_continue3;
+				goto break_continue;
 		gfcount++;
 		{
 			auto itf1 = itgf->second.paths.begin(), itf2 = itgf->second.paths.begin();
-			itf2++;//гарантированно их хотябы 2
+			itf2++;//гарантированно их хотябы 2 (а если size==0 их хотя бы 1)
 			int max_eq=0;
-			for(auto it1=itf1->first.begin(), it2=itf2->first.begin(); it1!=itf1->first.end() && it2!=itf2->first.end() && *it1==*it2; 
-				it1++, it2++)
-				max_eq++;
-			for(itf1++, itf2++; itf2!=itgf->second.paths.end(); itf1++, itf2++){
-				int i=0;
-				for(auto it1=itf1->first.begin(), it2=itf2->first.begin(); i<max_eq; it1++, it2++, i++)
-					if(!(it1!=itf1->first.end() && it2!=itf2->first.end() && *it1==*it2)){
-						max_eq=i;
-						break;
-					}
+			if(itgf->second.size!=0 || itf2!=itgf->second.paths.end()){
+				for(auto it1=itf1->first.begin(), it2=itf2->first.begin(); 
+						it1!=itf1->first.end() && it2!=itf2->first.end() && *it1==*it2; 
+						it1++, it2++){
+					max_eq++;
+				}
+				for(itf1++, itf2++; itf2!=itgf->second.paths.end(); itf1++, itf2++){
+					int i=0;
+					for(auto it1=itf1->first.begin(), it2=itf2->first.begin(); i<max_eq; it1++, it2++, i++)
+						if(!(it1!=itf1->first.end() && it2!=itf2->first.end() && *it1==*it2)){
+							max_eq=i;
+							break;
+						}
+				}
 			}
 			if(max_eq==0)	
 				(*pGGFs)[vector<string>({string(".")})].second.insert(itgf);
 			else
 				(*pGGFs)[my_head(itgf->second.paths.begin()->first,max_eq)].second.insert(itgf);
 		}
-	break_continue3:
+	break_continue:
 		;
 	}
 	cerr<<gfcount<<" независимых групп файлов"<<endl;
@@ -1068,8 +1078,9 @@ void print_script_rmdirs(const hps_t * phps, const sii_cont & psd){
 	cerr<<GPs.size()<<" групп папок" <<endl;
 	
 	//=== расформировать GF.size==0 ===
-	if(GF0.size!=-1)
+	if(GF0.size!=-1){
 		kill_GF0(&GPs,&GFs,&GF0);
+	}
 	//cerr<<"GF0 расформирован" <<endl;
 	
 #if 0
@@ -1098,7 +1109,9 @@ void print_script_rmdirs(const hps_t * phps, const sii_cont & psd){
 	make_GGPs(&GGPsGFs,&GPs);
 	
 	//=== разложить ГФы по стартовым папкам ===
+	cerr<<"before select_GFs"<<endl;
 	select_GFs(&GGPsGFs,GFs);
+	cerr<<"after select_GFs"<<endl;
 	cerr <<GGPsGFs.size()<<" групп групп папок и независимых групп файлов"<<endl;
 	
 	//=== вывести все это ===
