@@ -27,6 +27,36 @@ using str::spn_crlf;
 using str::until_charclass;
 using str::make_span;
 
+//находит соседние повторяющиеся
+//и если выполняется pred2 от первого и последнего из них
+//	заменят их на zero_value
+//а потом удаляет его
+template<class init_t, class outit_t, typename bin_pred_t, typename bin_pred_t2, class val_t>
+init_t antiuniq_copy_remove_check(init_t first, init_t last, outit_t out, 
+	const val_t & zero_value, const bin_pred_t & pred, const bin_pred_t2 & pred2)
+{
+	auto first2 = first;
+	while((first = adjacent_find(first,last,pred))!=last){
+		auto next = first;
+		//cerr<<"group"<<endl;
+		for(; next!=last && pred(*first,*next); next++)
+			//cerr<<*next<<endl;
+			;
+		//cout <<"compare("<<next-first<<"):"<<endl<<*first<<endl<<*prev(next)<<endl;
+		
+		if(pred2(*first,*prev(next))){
+			//cout<<"do this"<<endl;
+			for(auto it = first; it!=next; it++){
+				*out++ = move(*it);
+				*it = zero_value;
+			}
+		}
+		else
+			;//cout <<"false"<<endl;
+		first=next;
+	}
+	return remove(first2,last,zero_value);
+}
 //копирует соседние повторяющиеся
 //заменят их на zero_value
 //а потом удаляет его
@@ -40,9 +70,9 @@ init_t antiuniq_copy_remove(init_t first, init_t last, outit_t out,
 		*out++ = (*next);
 		for(next++; next!=last && pred(*first,*next); next++){
 			*out++ = move(*next);
-			*next = move(zero_value);
+			*next = zero_value;
 		}
-		*first = move(zero_value);
+		*first = zero_value;
 		first=next;
 	}
 	return remove(first2,last,zero_value);
@@ -78,13 +108,14 @@ void print_delited_added(ostream & str, const vector<pair<pair<char,string>,pair
 template <class it_t>
 void read_diff(it_t & strin, vector<pair<pair<char,string>,pair<long long,int>>> * diff, bool inverse);
 
-
+// === MAIN ===
 int main(int argc, const char * argv[])
 {
 	bool inverse=(argc==2 && argv[1][0]=='-' && argv[1][1]=='i' && argv[1][2]==0);
 	vector<pair<pair<char,string>,pair<long long,int>>> diff;//-+,path , size,date
 	read_diff(strin,&diff,inverse);
 
+	//=== changed ===
 	std::sort(diff.begin(),diff.end(),
 		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
 			return l.first.second<r.first.second || l.first.second==r.first.second && l.first.first>r.first.first;
@@ -97,41 +128,34 @@ int main(int argc, const char * argv[])
 		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
 			return l.first.second==r.first.second;
 			//path
-	});
-
+	});	diff.erase(end1,diff.end());
 	print_changed(cout,changed);
-	size_t s=end1-diff.begin();
-	while(diff.size()>s)	diff.pop_back();
+	changed.clear();
 
+	//=== moved ===
 	std::sort(diff.begin(),diff.end(),
 		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
 			return l.second.first<r.second.first || l.second.first==r.second.first && l.second.second<r.second.second
 			|| l.second.first==r.second.first && l.second.second==r.second.second && l.first.first>r.first.first;
 			//size, date, -+
 	});
-	
 	//cout<<"=== before moved === "<<endl<<diff<<endl;
-	changed.clear();
-	end1 = antiuniq_copy_remove(diff.begin(),diff.end(),back_inserter(changed),
+	//перемещенные - с одинаковым размером и временем изменения 
+	//и если среди них присутствуют различные знаки
+	end1 = antiuniq_copy_remove_check(diff.begin(),diff.end(),back_inserter(changed),
 		move(make_pair(move(make_pair('\0',move(string("")))),move(make_pair((long long)0,0)))),
 		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
 			return l.second.first==r.second.first && l.second.second==r.second.second;
 			//size, date
-	});
-
-	s=end1-diff.begin();
-	while(diff.size()>s)	diff.pop_back();
-	end1 = antiuniq_copy_remove(changed.begin(),changed.end(),back_inserter(diff),
-		move(make_pair(move(make_pair('\0',move(string("")))),move(make_pair((long long)0,0)))),
+		},
 		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
-			return l.second.first==r.second.first && l.second.second==r.second.second && l.first.first==r.first.first;
-			//size, date, +-
+			return l.first.first!=r.first.first;
+			//+-
 		}
-	);
-	s=end1-changed.begin();
-	while(changed.size()>s)	changed.pop_back();
+	);	diff.erase(end1,diff.end());
 	print_moved(cout,changed);
 	
+	//=== deleted/added ===
 	std::sort(diff.begin(),diff.end(),
 		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
 			return l.first.first>r.first.first || l.first.first==r.first.first && l.first.second<r.first.second;
@@ -144,7 +168,7 @@ ostream & operator<<(ostream & str, const pair<pair<char,string>,pair<long long,
 	return str<<it.first.first<<it.second.first<<'\t'<<it.second.second<<'\t'<<it.first.second;
 }
 ostream & operator<<(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & vec){
-	for(auto it=vec.begin(); it!=vec.end(); it++)
+	for(auto it=vec.cbegin(); it!=vec.cend(); it++)
 		str<<*it<<endl;
 	return str;
 }
@@ -171,7 +195,7 @@ std::ostream & operator<<(std::ostream & str, datetime dt){
 	using namespace std;
 	return str<<setfill('0')<<setw(2)<<(ptime->tm_year+1900)<<"-"
 		<<setfill('0')<<setw(2)<<(ptime->tm_mon+1)<<"-"
-		<<setfill('0')<<setw(2)<<(ptime->tm_mday)<<"@"
+		<<setfill('0')<<setw(2)<<(ptime->tm_mday)<<" "
 		<<setfill('0')<<setw(2)<<ptime->tm_hour<<"-"
 		<<setfill('0')<<setw(2)<<ptime->tm_min<<"-"
 		<<setfill('0')<<setw(2)<<ptime->tm_sec;
@@ -197,9 +221,10 @@ std::ostream & operator<<(std::ostream & str, bytes bb){
 	return str;
 }
 
+//ожидает список -+-+-+... и чтобы у пар совпадали имена
 void print_changed(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & vec){
-	if(vec.empty())	return;
 	cout<<"# === changed ==="<<endl;//<<vec<<endl;
+	if(vec.empty())	return;
 	for(auto it=vec.begin(); it!=vec.end(); it++){
 		if(it->first.first!='-'){
 			cerr<<"diffiles: ERROR: changed: expected file '-'"<<endl<<*it<<endl;
@@ -220,10 +245,12 @@ void print_changed(ostream & str, const vector<pair<pair<char,string>,pair<long 
 			<<"#from "<<bytes(old_size)<<" to "<<bytes(it->second.first)<<" at "<<datetime(it->second.second)<<endl;
 	}
 }
+//ожидает список с повторяющимися датой/размером,
+//выводит moved и UNDETECED MOVED
 void print_moved(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & vec){
+	str<<"#=== moved ==="<<endl;
 	if(vec.empty())	return;
 	vector<pair<pair<char,string>,pair<long long,int>>> undetected;
-	str<<"#=== moved ==="<<endl;
 	auto first = vec.begin();
 	auto last = vec.end();
 	while(first!=last){
@@ -253,19 +280,20 @@ met:
 		first=next;
 	}
 
-	if(undetected.empty())	return;
 	str<<"#=== UNDETECTED MOVES ==="<<endl;//<<vec<<endl;
+	if(undetected.empty())	return;
 	for(auto it=undetected.begin(); it!= undetected.end(); it++)
 		str<<"#"<<*it<<endl;
 }
+//ожидает сначала список - и выводит deleted, а потом список + и выводит added
 void print_delited_added(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & vec){
+	cout<<"#=== deleted ==="<<endl;//<<vec<<endl;
 	if(vec.empty())	return;
 	auto it=vec.begin();
 	if(it->first.first=='-'){
-		cout<<"#=== deleted ==="<<endl;//<<vec<<endl;
 		for(; it!=vec.end() && it->first.first=='-'; it++)
 			str <<"git rm \""<<quote_out(it->first.second.c_str())<<'"'
-				<<" # "<<bytes(it->second.first)<<endl;
+				<<" # "<<bytes(it->second.first)<<" at "<<datetime(it->second.second)<<endl;
 	}
 	if(it==vec.end()) return;
 	str<<endl<<"#=== added ==="<<endl;

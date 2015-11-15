@@ -7,17 +7,18 @@ printargs(){
 	done 
 }
 
-#echo lsdups arguments:
-#printargs "$@"
-
-if [ $# != 1 -a "$1" == "--no-ls" ]; then
+if [ "$1" == "--no-ls" ]; then
 	shift
 else
 	echo ll2lpath: >&2
 	ll2lpath "$@"
 fi
 
-echo after ll2lpath
+#echo lsdups arguments:
+#printargs "$@"
+#echo .
+#exit
+
 
 if [ $# == 0 ]; then
 	wd=.files
@@ -43,7 +44,13 @@ if [ ! -f "$wd"/rmdups-persist ]; then
 		echo дублирующиеся файлы отсутствуют
 	fi
 else
-	echo lsdups: Изменеия в дубликатах по сравнению с .files/rmdups-persist \
- \( $(	diff -u3 "$wd"/rmdups-persist "$wd"/rmdups | wc -l ) \):
-	diff -u3 <(grep '^\(#====\|#----\)' "$wd"/rmdups-persist) <(grep '^\(#====\|#----\)' "$wd"/rmdups) | grep -v '^\(+++\|---\)'
+	if [ "$(	diff -u3 "$wd"/rmdups-persist "$wd"/rmdups )" != "" ]; then
+		echo lsdups: Изменеия в дубликатах по сравнению с .files/rmdups-persist \
+\( $(	diff -u3 "$wd"/rmdups-persist "$wd"/rmdups | wc -l ) \):
+		diff -u3 <(grep '^\(#====\|#----\)' "$wd"/rmdups-persist) <(grep '^\(#====\|#----\)' "$wd"/rmdups) | 
+			grep -v '^\(+++\|---\)'
+	else
+		echo ИЗМЕНЕНИЙ НЕТ
+		grep '^\(#====\|#----\)' "$wd"/rmdups
+	fi
 fi

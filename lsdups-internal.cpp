@@ -936,6 +936,7 @@ void print_GGX(const GGPsGFs_t & GGX, const sii_cont & psd){
 		//cerr<<"#==== \""<<(itpath->first)<<"\" ===="<<endl;
 		//вывод групп папок
 		for(auto itggp = itpath->second.first.begin(); itggp!=itpath->second.first.end(); itggp++){
+			set<string> ggp_exts;
 			//*itggp <-> GGP_t
 			int ggp_size=0;
 			for(auto itgp = itggp->begin(); itgp!=itggp->end(); itgp++){
@@ -944,7 +945,9 @@ void print_GGX(const GGPsGFs_t & GGX, const sii_cont & psd){
 				long long gp_size=0;
 				set<string> exts;
 				for(auto itf = itgp->second.begin(); itf!=itgp->second.end(); itf++){
-					exts.insert(string(find_ext(&*prev(itf->first.end()))));
+					string ext = find_ext(&*prev(itf->first.end()));
+					exts.insert(ext);
+					ggp_exts.insert(move(ext));
 					gp_size+=itf->second->second.size;
 				}
 				cout<<"rmfromdir(){ # "<<itgp->second.size()<<" файлов, "<<bytes(gp_size);
@@ -957,7 +960,18 @@ void print_GGX(const GGPsGFs_t & GGX, const sii_cont & psd){
 					//itf->first  <-> vector<string>
 					//itf->second <-> pair<string,GF>
 					cout<<"\trm \"$1/"<<itf->first<<"\" "
-						<<"# ("<<bytes(itf->second->second.size)<<") "<<itf->second->first<<endl;
+						<<"# ("<<bytes(itf->second->second.size)<<") ";
+					int gf_count=0;
+					for(auto it = itf->second->second.paths.begin(); it!=itf->second->second.paths.end(); it++)
+						//map<vector<string>,bool,reverse_less> paths;
+						if(it->second
+							|| end_by(it->first,itf->first))
+							gf_count++;
+					gf_count -= itgp->first.size();
+					if(gf_count)
+						cout<<itf->second->first<<" (ещё существует "<<gf_count<<" таких же файлов)";
+					cout<<endl;
+					
 					for(auto it = itf->second->second.paths.begin(); it!=itf->second->second.paths.end(); it++)
 						//map<vector<string>,bool,reverse_less> paths;
 						if(!it->second
@@ -1003,7 +1017,10 @@ void print_GGX(const GGPsGFs_t & GGX, const sii_cont & psd){
 			cout<<"#-------- "<<itggp->size()<<" гп, [";
 			for(auto itgp = itggp->begin(); itgp!=itggp->end(); itgp++)
 				cout<<itgp->first.size()<<'x'<<itgp->second.size()<<' ';
-			cout<<"] "<<bytes(ggp_size)<<" --------------------------------------------"<<endl<<endl;
+			cout<<"] (";
+			for(auto it = ggp_exts.begin(); it!=ggp_exts.end(); it++)
+				cout<<" "<<*it;
+			cout<<") "<<bytes(ggp_size)<<endl<<endl;
 		}
 		//вывод групп файлов
 		int gf_size=0;
@@ -1020,10 +1037,12 @@ void print_GGX(const GGPsGFs_t & GGX, const sii_cont & psd){
 				cout<<"#rm \""<<(it->first)<<"\""<<endl;
 			cout<<endl;
 		}
-		cout<<"#-------- "<<itpath->second.second.size()<<" гф, [";
-		for(auto ititgf = itpath->second.second.begin(); ititgf!=itpath->second.second.end(); ititgf++)
-			cout<<(*ititgf)->second.paths.size()<<' ';
-		cout<<"] "<<bytes(gf_size)<<" --------------------------------------------"<<endl<<endl;
+		if(itpath->second.second.size()){
+			cout<<"#-------- "<<itpath->second.second.size()<<" гф, [";
+			for(auto ititgf = itpath->second.second.begin(); ititgf!=itpath->second.second.end(); ititgf++)
+				cout<<(*ititgf)->second.paths.size()<<' ';
+			cout<<"] "<<bytes(gf_size)<<" --------------------------------------------"<<endl<<endl;
+		}
 	}
 }
 

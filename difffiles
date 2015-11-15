@@ -16,9 +16,9 @@ while read line ; do
 	fi
 done < "$wd/list"
 
-oldfiles="${commit_line%" $wd/20*dirs"}"
-[ "$oldfiles" == "$commit_line" ] && oldfiles="${commit_line%" $wd/21*dirs"}"
-[ "$oldfiles" == "$commit_line" ] && oldfiles="${commit_line%" $wd/19*dirs"}"
+oldfiles="${commit_line% "$wd"/20*dirs}"
+[ "$oldfiles" == "$commit_line" ] && oldfiles="${commit_line% "$wd"/21*dirs}"
+[ "$oldfiles" == "$commit_line" ] && oldfiles="${commit_line% "$wd"/19*dirs}"
 [ "$oldfiles" == "$commit_line" ] && { echo difffiles: can not separate files from dirs; exit 1; }
 echo "$oldfiles"
 files="$(ls -1 "$wd"/20*-files "$wd"/19*-files "$wd"/21*-files 2>/dev/null | sort -r | head -n 1)"
