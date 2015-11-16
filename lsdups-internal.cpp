@@ -1109,9 +1109,7 @@ void print_script_rmdirs(const hps_t * phps, const sii_cont & psd){
 	make_GGPs(&GGPsGFs,&GPs);
 	
 	//=== разложить ГФы по стартовым папкам ===
-	cerr<<"before select_GFs"<<endl;
 	select_GFs(&GGPsGFs,GFs);
-	cerr<<"after select_GFs"<<endl;
 	cerr <<GGPsGFs.size()<<" групп групп папок и независимых групп файлов"<<endl;
 	
 	//=== вывести все это ===
