@@ -1,10 +1,12 @@
 #! /bin/bash
 
+#set -x
+
 printhelp()
 {
     I_AM=$(basename "$0")
     cat >&2 <<EOF
-$I_AM - allow run one source file as script >&2
+$I_AM - run one source file as script >&2
 usage
     $I_AM -h | --help
     $I_AM [-f | -c | -w | -o OPTIONS | -p POSTOPTIONS | -i | -l | -s SUFFIX]... ( PROGRAM | -- PROGRAM ) ARGS
@@ -55,58 +57,64 @@ onlycompile=0
 whichonly=0
 clang=0
 suffix=""
+echooption()
+{
+   # echo option "$@"
+    :
+}
+
 while getopts fcwo:p:ils: opts ; do
     case "$opts" in
 	i)
-	    #echo option -i
+	    echooption i
 	    options=
-	    #shift
+	    # shift
 	    ;;
 	o)
-	    #echo option -o
-	    #[ $# -lt 2 ] && printhelp 1
+	    echooption o
+	    # [ $# -lt 2 ] && printhelp 1
 	    options="$options $OPTARG"
-	    #shift; shift
+	    # shift; shift
 	    ;;
         p)
-	    #echo option -p
-	    #[ $# -lt 2 ] && printhelp 1
+	    echooption p
+	    # [ $# -lt 2 ] && printhelp 1
 	    post_options="$post_options $OPTARG"
-	    #shift; shift
+	    # shift; shift
 	    ;;
 	s)
-	    #echo option -s
-	    #[ $# -lt 2 ] && printhelp 1
+	    echooption s
+	    # [ $# -lt 2 ] && printhelp 1
 	    suffix="$OPTARG"
-	    #shift; shift
+	    # shift; shift
 	    ;;
 	f)
-	    #echo option -f
+	    echooption f
 	    force=1
-	    #shift
+	    # shift
 	    ;;
 	c)
-	    #echo option -c
+	    echooption c
 	    onlycompile=1
-	    #shift
+	    # shift
 	    ;;
 	w)
-	    #echo option -w
+	    echooption w
 	    whichonly=1
-	    #shift
+	    # shift
 	    ;;
 	l)
-	    #echo option -l
+	    echooption l
 	    clang=1
-	    #shift  ;;
-	    #-r)
-	    #echo option -r
-	    #[ $# -lt 2 ] && printhelp 1
-	    #cppname="$1"
-	    #shift; shift
+	    # shift  ;;
+      # -r)
+	    # echo option -r
+	    # [ $# -lt 2 ] && printhelp 1
+	    # cppname="$1"
+	    # shift; shift
 	    ;;
 	*)
-	    #echo option '-*' "$1"
+	    echooption '*'
 	    printhelp 1 ;;
 	#*)
 	#echo option cppname "$1"
@@ -171,6 +179,11 @@ if [ $(uname -o) == "Cygwin" -a -z "$suffix" ]; then exename="$exename".exe; fi
 #echo exename = $exename
 
 #=== compile function ===
+mygcc(){
+    g++ $options "$cppname" -o "$exename" $post_options 2>&1 |
+	awk 'NR<=40;  END {print "runcpp: compile messages lines " NR;}'
+    echo "$PIPESTATUS"
+}
 compile()
 {
 # ????? почему вывод в stdout не работает, если  вывод g++ не перенаправлять в stdout ???
@@ -179,16 +192,21 @@ compile()
 	clang++ $options "$cppname" -o "$exename" $post_options
     else
 	echo "runcpp: g++ $cppname (options = $options)" >&2
-	g++ $options "$cppname" -o "$exename" $post_options 2>&1 |
-	    awk 'NR<=40;  END {print "runcpp: compile messages lines " NR; if(NR) print "***** БЕЗ ОШИБОК *****" }' >&2
+	mess="$(mygcc)" 
+	echo "$mess" | head -n -1 >&2
 #    g++ -I"$YADISK_PATH"/_programming/_src/include/ "$cppname" -o "$exename" 2>&1 | tee >(sleep 1; wc -l >&2; echo \^ total lines >&2) | cat | head -n 40
 	#нужно больше котиков
     fi
-    if [ $PIPESTATUS != 0 ]
+    
+    if [ $(echo "$mess" | tail -n 1) != 0 ]
     then
 # ????? почему вывод в stdout не работает, если  вывод g++ не перенаправлять в stdout ???
 	echo '***** ОШИБКА КОМПИЛЯЦИИ *****' >&2
 	exit 99;
+    else
+	if [ "$(echo -n "$mess" | wc -l)" -gt 1 ]; then
+	    echo '***** БЕЗ ОШИБОК *****' >&2
+	fi
     fi
 }
 
@@ -202,14 +220,6 @@ if false; then
    then echo true: exe \($(stat --format=%Y "$exename")\) created later then cpp\($(stat --format=%Y "$cppname")\) 
    else echo false: cpp\($(stat --format=%Y "$cppname")\) created later then exe \($(stat --format=%Y "$exename")\)
    fi
-   if [ -z "$(grep '\<stralgorithm\>' "$cppname")" ] ;
-   then echo true: "$(grep '\<stralgorithm\>' "$cppname")": cpp not contain \<stralgorithm\>
-   else echo false: "$(grep '\<stralgorithm\>' "$cppname")": cpp contain \<stralgorithm\>
-   fi
-   if [ $(stat --format=%Y "$YADISK_PATH"/_programming/_src/include/stralgorithm) -lt $(stat --format=%Y "$exename") ]
-   then echo true: exe \($(stat --format=%Y "$exename")\) created later then stralgorithm\(-cpp\)\($(stat --format=%Y "$YADISK_PATH"/_programming/_src/include/stralgorithm)\) 
-   else echo false: stralgorithm\(-cpp\)\($(stat --format=%Y "$YADISK_PATH"/_programming/_src/include/stralgorithm)\) created later then exe \($(stat --format=%Y "$exename")\)
-   fi
 fi
 
 #=== compile conditions ===
@@ -217,12 +227,9 @@ if [ $force == 1 -o $onlycompile == 1 ]; then
     compile
 else 
     if [ -e "$exename" ] && [ "$cppname" -ot "$exename" ]; then
-#	( [ -z "$(grep '\<stralgorithm\>' "$cppname")" ] ||\
-#		  [ $(stat --format=%Y "$YADISK_PATH"/_programming/_src/include/stralgorithm) -lt $(stat --format=%Y "$exename") ] )\
-#		|| compile
-#	)
 	:
     else
+	
 	compile
     fi
 fi
