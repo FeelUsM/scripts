@@ -1,5 +1,4 @@
 #! /bin/bash
-#todo добавить использование getopt
 
 printhelp()
 {
@@ -8,7 +7,7 @@ printhelp()
 $I_AM - allow run one source file as script >&2
 usage
     $I_AM -h | --help
-    $I_AM [-f | -c | -w | -o OPTIONS | -p POSTOPTIONS | -i | -l | -s SUFFIX]... ( PROGRAM | -r PROGRAM ) ARGS
+    $I_AM [-f | -c | -w | -o OPTIONS | -p POSTOPTIONS | -i | -l | -s SUFFIX]... ( PROGRAM | -- PROGRAM ) ARGS
   PROGRAM one source file,
       placed in current directory, or in directory which containing in \$PATH
       (if does not find - return 2)
@@ -56,57 +55,69 @@ onlycompile=0
 whichonly=0
 clang=0
 suffix=""
-while [ $# -gt 0 -a -z "$cppname" ]; do
-    case "$1" in
-	-i)
+while getopts fcwo:p:ils: opts ; do
+    case "$opts" in
+	i)
 	    #echo option -i
 	    options=
-	    shift  ;;
-	-o)
+	    #shift
+	    ;;
+	o)
 	    #echo option -o
-	    [ $# -lt 2 ] && printhelp 1
-	    options="$options $2"
-	    shift; shift  ;;
-	-p)
+	    #[ $# -lt 2 ] && printhelp 1
+	    options="$options $OPTARG"
+	    #shift; shift
+	    ;;
+        p)
 	    #echo option -p
-	    [ $# -lt 2 ] && printhelp 1
-	    post_options="$post_options $2"
-	    shift; shift  ;;
-	-s)
+	    #[ $# -lt 2 ] && printhelp 1
+	    post_options="$post_options $OPTARG"
+	    #shift; shift
+	    ;;
+	s)
 	    #echo option -s
-	    [ $# -lt 2 ] && printhelp 1
-	    suffix="$2"
-	    shift; shift  ;;
-	-f)
-	    echo option -f
+	    #[ $# -lt 2 ] && printhelp 1
+	    suffix="$OPTARG"
+	    #shift; shift
+	    ;;
+	f)
+	    #echo option -f
 	    force=1
-	    shift  ;;
-	-c)
+	    #shift
+	    ;;
+	c)
 	    #echo option -c
 	    onlycompile=1
-	    shift  ;;
-	-w)
+	    #shift
+	    ;;
+	w)
 	    #echo option -w
 	    whichonly=1
-	    shift  ;;
-	-l)
+	    #shift
+	    ;;
+	l)
 	    #echo option -l
 	    clang=1
-	    shift  ;;
-	-r)
+	    #shift  ;;
+	    #-r)
 	    #echo option -r
-	    [ $# -lt 2 ] && printhelp 1
-	    cppname="$1"
-	    shift; shift  ;;
-	-*)
+	    #[ $# -lt 2 ] && printhelp 1
+	    #cppname="$1"
+	    #shift; shift
+	    ;;
+	*)
 	    #echo option '-*' "$1"
 	    printhelp 1 ;;
-	*)
-	    #echo option cppname "$1"
-	    cppname="$1"
-	    shift  ;;
+	#*)
+	#echo option cppname "$1"
+	#cppname="$1"
+	#shift  ;;
     esac
 done
+shift `expr  $OPTIND - 1`
+
+cppname="$1"
+shift
 [ -z "$cppname" ] && printhelp 1
 
 #=== cpp are placed in path ===
@@ -168,7 +179,8 @@ compile()
 	clang++ $options "$cppname" -o "$exename" $post_options
     else
 	echo "runcpp: g++ $cppname (options = $options)" >&2
-	g++ $options "$cppname" -o "$exename" $post_options 2>&1 | awk 'NR<=40;  END {print "runcpp: compile messages lines " NR}' >&2
+	g++ $options "$cppname" -o "$exename" $post_options 2>&1 |
+	    awk 'NR<=40;  END {print "runcpp: compile messages lines " NR; if(NR) print "***** БЕЗ ОШИБОК *****" }' >&2
 #    g++ -I"$YADISK_PATH"/_programming/_src/include/ "$cppname" -o "$exename" 2>&1 | tee >(sleep 1; wc -l >&2; echo \^ total lines >&2) | cat | head -n 40
 	#нужно больше котиков
     fi
