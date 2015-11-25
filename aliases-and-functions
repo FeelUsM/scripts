@@ -1,5 +1,7 @@
 #-*- sh -*-
 
+#здесь находятся алиасы и функции, которые можно запускать из других скриптов, если подключить это файл
+#но я так ни разу не делал
 
 #=== wget ===
 alias wgetsite="wget -r -np -k -p -e robots=off -U mozilla --random-wait"
@@ -79,15 +81,9 @@ mytar()
     tar -czf $1 -o $1.tgz
 }
 
-#=== zhelp ===
-zhelp()
-{
-    echo help $1 | bash
-}
-
 TRASH_DIR=~/.trash
-#=== rmt ===
-rmt(){
+#=== rm-to-trash ===
+rm-to-trash(){
     #echo $@
     while [ $# -gt 0 ]; do
 	case "$1" in /*) pat="$1";; *) pat="$PWD/$1";; esac
@@ -95,7 +91,7 @@ rmt(){
 	local dir="$TRASH_DIR/$(dirname "${pat#/}")"
 	#echo "pat= $pat dir= $dir"
 	mkdir -p "$dir" && #echo mkdir OK &&
-	    cp -ri --preserve=timestamp "$pat" "$dir" && #echo cp OK &&
+	    cp -Pri --preserve=timestamp "$pat" "$dir" && #echo cp OK &&
 	    /usr/bin/rm -rf "$pat" #&& echo rm OK
     done
 }
