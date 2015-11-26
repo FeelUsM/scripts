@@ -5,19 +5,19 @@
 
 #=== wget ===
 alias wgetsite="wget -r -np -k -p -e robots=off -U mozilla --random-wait"
-#-r		 recursive
+#-r              recursive
 #-np no-parent - не подниматься выше заданной директории
-#-k		 после завершения загрузки конвертировать ссылки
-#-p		 Загружать все файлы, которые нужны для отображения страниц HTML
-#-e robots=off	 не подчиняться (obey) robots.txt
-#-U mozilla		прикинуться mozillой
-#--random-wait	 случайное врмя ожидания - чтобы не банили как бота
+#-k              после завершения загрузки конвертировать ссылки
+#-p              Загружать все файлы, которые нужны для отображения страниц HTML
+#-e robots=off   не подчиняться (obey) robots.txt
+#-U mozilla      прикинуться mozillой
+#--random-wait   случайное врмя ожидания - чтобы не банили как бота
 
 #=== cadaver ===
 alias yacadav='cadaver https://webdav.yandex.ru'
 
 #=== echo $PATH ===
-alias path-n='sed '\''s/:/\n/g'\'
+alias path-n='echo $PATH | sed '\''s/:/\n/g'\'
 
 #=== winlink ===
 alias winlink='nircmd shortcut'
@@ -26,74 +26,74 @@ alias winlink='nircmd shortcut'
 STACK_SEPARATOR="\$'\n'" #how it works is invisible throw echo, but visible throw 'printf "%s"' (under bash)
 push()
 {
-    usage()
-    {
-	echo usage: push array_name value >&2
-    }
-    [ $# != 2 ] && { usage; return 1; }
+	usage()
+	{
+		echo usage: push array_name value >&2
+	}
+	[ $# != 2 ] && { usage; return 1; }
 
-    #echo "$1=\$$1$STACK_SEPARATOR\"$2\""
-    eval "$1=\$$1$STACK_SEPARATOR\"$2\""
+	#echo "$1=\$$1$STACK_SEPARATOR\"$2\""
+	eval "$1=\$$1$STACK_SEPARATOR\"$2\""
 }
 pop()
 {
-    usage()
-    {
-	echo usage: pop array_name >&2
-    }
-    [ $# != 1 ] && { usage; return 1; }
+	usage()
+	{
+		echo usage: pop array_name >&2
+	}
+	[ $# != 1 ] && { usage; return 1; }
 
-    eval "echo \${$1##*$STACK_SEPARATOR}"
-    eval "$1=\${$1%$STACK_SEPARATOR*}"
+	eval "echo \${$1##*$STACK_SEPARATOR}"
+	eval "$1=\${$1%$STACK_SEPARATOR*}"
 }
 popto()
 {
-    usage()
-    {
-	echo usage: popto array_name var_name >&2
-    }
-    [ $# != 2 ] && { usage; return 1; }
+	usage()
+	{
+		echo usage: popto array_name var_name >&2
+	}
+	[ $# != 2 ] && { usage; return 1; }
 
-    eval "$2=\${$1##*$STACK_SEPARATOR}"
-    eval "$1=\${$1%$STACK_SEPARATOR*}"
+	eval "$2=\${$1##*$STACK_SEPARATOR}"
+	eval "$1=\${$1%$STACK_SEPARATOR*}"
 }
 
 #=== tar ===
 myuntar()
 {
-    mkdir ${1%.tgz}
-    cd ${1%.tgz}
-    tar -xzf ../$1
-    local c=0
-    for x in * ; do
-	c=$(($c+1))
-    done
-    if [ "$c" = 1 ]; then
-	mv * ..
-    fi
-    cd -
-    if [ "$c" = 1 ]; then
-	rmdir ${1%.tgz}
-    fi
+	mkdir ${1%.tgz}
+	cd ${1%.tgz}
+	tar -xzf ../$1
+	local c=0
+	for x in * ; do
+		c=$(($c+1))
+	done
+	if [ "$c" = 1 ]; then
+		mv * ..
+	fi
+	cd -
+	if [ "$c" = 1 ]; then
+		rmdir ${1%.tgz}
+	fi
 }
 mytar()
 {
-    tar -czf $1 -o $1.tgz
+	tar -czf $1 -o $1.tgz
 }
 
 TRASH_DIR=~/.trash
 #=== rm-to-trash ===
 rm-to-trash(){
-    #echo $@
-    while [ $# -gt 0 ]; do
-	case "$1" in /*) pat="$1";; *) pat="$PWD/$1";; esac
-	shift
-	local dir="$TRASH_DIR/$(dirname "${pat#/}")"
-	#echo "pat= $pat dir= $dir"
-	mkdir -p "$dir" && #echo mkdir OK &&
-	    cp -Pri --preserve=timestamp "$pat" "$dir" && #echo cp OK &&
-	    /usr/bin/rm -rf "$pat" #&& echo rm OK
-    done
+	#echo $@
+	while [ $# -gt 0 ]; do
+		case "$1" in /*) pat="$1";; *) pat="$PWD/$1";; esac
+		shift
+		local dir="$TRASH_DIR/$(dirname "${pat#/}")"
+		#echo "pat= $pat dir= $dir"
+		mkdir -p "$dir" && #echo mkdir OK &&
+		    cp -Pri --preserve=timestamp "$pat" "$dir" && #echo cp OK &&
+		    /usr/bin/rm -rf "$pat" #&& echo rm OK
+	done
 }
 
 #----
