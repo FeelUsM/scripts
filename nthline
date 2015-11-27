@@ -1,8 +1,12 @@
 #! /bin/bash
 
+
+#trap для восстановления cnorm
+
 usage(){
     echo nthline - read text and print nth line with prefix >&2
-    echo usage: nthline [-n N] [-p prefix] >&2
+    echo usage: nthline [-n N] [-p prefix] [-1] [-c color] >&2
+    echo option -1 mean that every string will be truncated and overprinted on the same line by color ; it is slow >&2
     echo defaults: N=100 prefix=\"\" >&2
     exit $1
 }
@@ -29,12 +33,13 @@ while getopts n:p:h1c: opts ; do
 done
 
 [ $oneline == 1 ] && tput civis
+cols=$(( $(tput cols) - 2))
+[ $color != -1 ] && color_o=$(tput setf $color) || color_o=
 I=0
 while read line; do
     if [ $oneline == 1 ] ; then
 	tput sc
-	[ $color != -1 ] && tput setf $color
-	echo -n "${line:0:$(( $(tput cols) - 2))}"
+	echo -n "$color_o${line:0:$cols}"
 	tput el
 	tput rc
     fi
