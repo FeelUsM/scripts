@@ -83,17 +83,31 @@ mytar()
 
 TRASH_DIR=~/.trash
 #=== rm-to-trash ===
-rm-to-trash(){
+if [ -n "$(cp --version | grep 8.24)" ]
+    rm-to-trash(){
 	#echo $@
 	while [ $# -gt 0 ]; do
-		case "$1" in /*) pat="$1";; *) pat="$PWD/$1";; esac
-		shift
-		local dir="$TRASH_DIR/$(dirname "${pat#/}")"
-		#echo "pat= $pat dir= $dir"
-		mkdir -p "$dir" && #echo mkdir OK &&
-		    cp -Pri --preserve=timestamp "$pat" "$dir" && #echo cp OK &&
-		    /usr/bin/rm -rf "$pat" #&& echo rm OK
+	    case "$1" in /*) pat="$1";; *) pat="$PWD/$1";; esac
+	    shift
+	    local dir="$TRASH_DIR/$(dirname "${pat#/}")"
+	    #echo "pat= $pat dir= $dir"
+	    mkdir -p "$dir" && #echo mkdir OK &&
+	    cp -PrI --preserve=timestamp "$pat" "$dir" && #echo cp OK &&
+	    env rm -rf "$pat" #&& echo rm OK
 	done
-}
-
+    }
+else  # difference in cp -i and cp -I
+    rm-to-trash(){
+	#echo $@
+	while [ $# -gt 0 ]; do
+	    case "$1" in /*) pat="$1";; *) pat="$PWD/$1";; esac
+	    shift
+	    local dir="$TRASH_DIR/$(dirname "${pat#/}")"
+	    #echo "pat= $pat dir= $dir"
+	    mkdir -p "$dir" && #echo mkdir OK &&
+	    cp -Pri --preserve=timestamp "$pat" "$dir" && #echo cp OK &&
+	    env rm -rf "$pat" #&& echo rm OK
+	done
+    }
+fi
 #----
