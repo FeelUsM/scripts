@@ -139,7 +139,7 @@ namespace io_util{
 	}
 }
 
-typedef pair<string,pair<long long,int>> sii_t;
+typedef pair<string,pair<long long,long long>> sii_t;
 typedef vector<sii_t> sii_cont;
 typedef multimap<string,pair<string,long long>> hps_t;
 
@@ -171,7 +171,7 @@ namespace input{
 		if(hashes){	
 			while(!atend(hashes.iter())){
 				string hash;
-				int datetime;
+				long long datetime;
 				string path;
 				if(!(read_until_char(hashes.iter(),'\t',&hash)
 					&&E2F(read_dec(hashes.iter(),&datetime))
@@ -184,7 +184,7 @@ namespace input{
 				auto it = ppsd2->find(path);
 				if(it==ppsd2->end())	continue;
 				if(it->second.second/*date*/ != datetime)	continue;
-				phps->insert(move(make_pair(move(hash),make_pair(it->first,it->second.first))));//hash path size
+				phps->insert(make_pair(move(hash),make_pair(it->first,it->second.first)));//hash path size
 				ppsd2->erase(it);
 			}
 		}
@@ -399,7 +399,7 @@ int main(int argc, const char * argv[]){
 		return errcode;
 	if(psd.empty())	cerr<<"files empty"<<endl;
 	std::sort(psd.begin(),psd.end(),
-		[](const pair<string,pair<long long,int>> & l, const pair<string,pair<long long,int>> & r){
+		[](const pair<string,pair<long long,long long>> & l, const pair<string,pair<long long,long long>> & r){
 			return l.second.first<r.second.first;//size
 		}
 	);
@@ -411,7 +411,7 @@ int main(int argc, const char * argv[]){
 	//=== ищем кандидатов по размеру ===
 	map<decltype(sii_t().first),decltype(sii_t().second)> psd2;
 	antiuniq_copy(psd.begin(),psd.end(),inserter(psd2,psd2.end()),
-		[](const pair<string,pair<long long,int>> & l, const pair<string,pair<long long,int>> & r){
+		[](const pair<string,pair<long long,long long>> & l, const pair<string,pair<long long,long long>> & r){
 			return l.second.first==r.second.first;//size
 		}
 	);
@@ -439,7 +439,7 @@ int main(int argc, const char * argv[]){
 	//print_simple(hps);
 	//print_script_rmfiles(&hps);
 	std::sort(psd.begin(),psd.end(),
-		[](const pair<string,pair<long long,int>> & l, const pair<string,pair<long long,int>> & r){
+		[](const pair<string,pair<long long,long long>> & l, const pair<string,pair<long long,long long>> & r){
 			return l.first<r.first;//path
 		}
 	);
@@ -998,7 +998,7 @@ void print_GGX(const GGPsGFs_t & GGX, const sii_cont & psd){
 						pathdir+=*it+'/';
 					//cout << "pathdir="<<pathdir<<endl;
 					auto file_it = lower_bound(psd.begin(),psd.end(),make_pair(pathdir,make_pair((long long) 0,0)),
-						[](const pair<string,pair<long long,int>> & l, const pair<string,pair<long long,int>> & r){
+						[](const pair<string,pair<long long,long long>> & l, const pair<string,pair<long long,long long>> & r){
 							return l.first<r.first;//path
 						}
 					);

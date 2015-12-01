@@ -8,19 +8,22 @@ else
 	shift
 fi
 
+commit_line="$(head -n 1 "$wd/list")"
 while read line ; do
-	if [ "$line" == commit ] ; then
+	if [ "$line" == "commit*" ] ; then
 		commit_line="$tmp_commit_line"
 	else
 		tmp_commit_line="$line";
 	fi
 done < "$wd/list"
 
-oldfiles="${commit_line% "$wd"/20*dirs}"
-[ "$oldfiles" == "$commit_line" ] && oldfiles="${commit_line% "$wd"/21*dirs}"
-[ "$oldfiles" == "$commit_line" ] && oldfiles="${commit_line% "$wd"/19*dirs}"
+#echo commit_line = $commit_line
+
+oldfiles="${commit_line% AND "$wd"/20*dirs}"
+[ "$oldfiles" == "$commit_line" ] && oldfiles="${commit_line% AND "$wd"/21*dirs}"
+[ "$oldfiles" == "$commit_line" ] && oldfiles="${commit_line% AND "$wd"/19*dirs}"
 [ "$oldfiles" == "$commit_line" ] && { echo difffiles: can not separate files from dirs; exit 1; }
-echo "$oldfiles"
+#echo oldfiles = "$oldfiles"
 files="$(ls -1 "$wd"/20*-files "$wd"/19*-files "$wd"/21*-files 2>/dev/null | sort -r | head -n 1)"
 
 

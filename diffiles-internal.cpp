@@ -100,32 +100,32 @@ todo:
 при выводе undetected: если все - или все +, то их в создание/удаление
 */
 
-ostream & operator<<(ostream & str, const pair<pair<char,string>,pair<long long,int>> & it);
-ostream & operator<<(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & );
-void print_changed(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & );
-void print_moved(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & );
-void print_delited_added(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & );
+ostream & operator<<(ostream & str, const pair<pair<char,string>,pair<long long,long long>> & it);
+ostream & operator<<(ostream & str, const vector<pair<pair<char,string>,pair<long long,long long>>> & );
+void print_changed(ostream & str, const vector<pair<pair<char,string>,pair<long long,long long>>> & );
+void print_moved(ostream & str, const vector<pair<pair<char,string>,pair<long long,long long>>> & );
+void print_delited_added(ostream & str, const vector<pair<pair<char,string>,pair<long long,long long>>> & );
 template <class it_t>
-void read_diff(it_t & strin, vector<pair<pair<char,string>,pair<long long,int>>> * diff, bool inverse);
+void read_diff(it_t & strin, vector<pair<pair<char,string>,pair<long long,long long>>> * diff, bool inverse);
 
 // === MAIN ===
 int main(int argc, const char * argv[])
 {
 	bool inverse=(argc==2 && argv[1][0]=='-' && argv[1][1]=='i' && argv[1][2]==0);
-	vector<pair<pair<char,string>,pair<long long,int>>> diff;//-+,path , size,date
+	vector<pair<pair<char,string>,pair<long long,long long>>> diff;//-+,path , size,date
 	read_diff(strin,&diff,inverse);
 
 	//=== changed ===
 	std::sort(diff.begin(),diff.end(),
-		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
+		[](const pair<pair<char,string>,pair<long long,long long>> & l, const pair<pair<char,string>,pair<long long,long long>> & r){
 			return l.first.second<r.first.second || l.first.second==r.first.second && l.first.first>r.first.first;
 			//path, -+
 	});
 	//cout<<"=== before changed === "<<endl<<diff<<endl;
-	vector<pair<pair<char,string>,pair<long long,int>>> changed;//-+,path , size,date
+	vector<pair<pair<char,string>,pair<long long,long long>>> changed;//-+,path , size,date
 	auto end1 = antiuniq_copy_remove(diff.begin(),diff.end(),back_inserter(changed),
-		move(make_pair(move(make_pair('\0',move(string("")))),move(make_pair((long long)0,0)))),
-		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
+		move(make_pair(move(make_pair('\0',move(string("")))),move(make_pair((long long)0,(long long)0)))),
+		[](const pair<pair<char,string>,pair<long long,long long>> & l, const pair<pair<char,string>,pair<long long,long long>> & r){
 			return l.first.second==r.first.second;
 			//path
 	});	diff.erase(end1,diff.end());
@@ -134,7 +134,7 @@ int main(int argc, const char * argv[])
 
 	//=== moved ===
 	std::sort(diff.begin(),diff.end(),
-		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
+		[](const pair<pair<char,string>,pair<long long,long long>> & l, const pair<pair<char,string>,pair<long long,long long>> & r){
 			return l.second.first<r.second.first || l.second.first==r.second.first && l.second.second<r.second.second
 			|| l.second.first==r.second.first && l.second.second==r.second.second && l.first.first>r.first.first;
 			//size, date, -+
@@ -143,12 +143,12 @@ int main(int argc, const char * argv[])
 	//перемещенные - с одинаковым размером и временем изменения 
 	//и если среди них присутствуют различные знаки
 	end1 = antiuniq_copy_remove_check(diff.begin(),diff.end(),back_inserter(changed),
-		move(make_pair(move(make_pair('\0',move(string("")))),move(make_pair((long long)0,0)))),
-		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
+		move(make_pair(move(make_pair('\0',move(string("")))),move(make_pair((long long)0,(long long)0)))),
+		[](const pair<pair<char,string>,pair<long long,long long>> & l, const pair<pair<char,string>,pair<long long,long long>> & r){
 			return l.second.first==r.second.first && l.second.second==r.second.second;
 			//size, date
 		},
-		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
+		[](const pair<pair<char,string>,pair<long long,long long>> & l, const pair<pair<char,string>,pair<long long,long long>> & r){
 			return l.first.first!=r.first.first;
 			//+-
 		}
@@ -157,17 +157,17 @@ int main(int argc, const char * argv[])
 	
 	//=== deleted/added ===
 	std::sort(diff.begin(),diff.end(),
-		[](const pair<pair<char,string>,pair<long long,int>> & l, const pair<pair<char,string>,pair<long long,int>> & r){
+		[](const pair<pair<char,string>,pair<long long,long long>> & l, const pair<pair<char,string>,pair<long long,long long>> & r){
 			return l.first.first>r.first.first || l.first.first==r.first.first && l.first.second<r.first.second;
 			//-+, path
 	});
 	print_delited_added(cout,diff);
 }
 
-ostream & operator<<(ostream & str, const pair<pair<char,string>,pair<long long,int>> & it){
+ostream & operator<<(ostream & str, const pair<pair<char,string>,pair<long long,long long>> & it){
 	return str<<it.first.first<<it.second.first<<'\t'<<it.second.second<<'\t'<<it.first.second;
 }
-ostream & operator<<(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & vec){
+ostream & operator<<(ostream & str, const vector<pair<pair<char,string>,pair<long long,long long>>> & vec){
 	for(auto it=vec.cbegin(); it!=vec.cend(); it++)
 		str<<*it<<endl;
 	return str;
@@ -222,7 +222,7 @@ std::ostream & operator<<(std::ostream & str, bytes bb){
 }
 
 //ожидает список -+-+-+... и чтобы у пар совпадали имена
-void print_changed(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & vec){
+void print_changed(ostream & str, const vector<pair<pair<char,string>,pair<long long,long long>>> & vec){
 	cout<<"# === changed ==="<<endl;//<<vec<<endl;
 	if(vec.empty())	return;
 	for(auto it=vec.begin(); it!=vec.end(); it++){
@@ -241,16 +241,16 @@ void print_changed(ostream & str, const vector<pair<pair<char,string>,pair<long 
 			cerr<<"diffiles: ERROR: changed: expected file '+' with name "<<sss<<endl<<*it<<endl;
 			exit(1);
 		}
-		str <<"git add \""<<quote_out(it->first.second.c_str())<<"\" "
-			<<"#from "<<bytes(old_size)<<" to "<<bytes(it->second.first)<<" at "<<datetime(it->second.second)<<endl;
+		str <<"add \""<<quote_out(it->first.second.c_str())<<"\" "
+			<<"#from "<<bytes(old_size)<<" to "<<bytes(it->second.first)<<" at "<<datetime(it->second.second/1000000000)<<endl;
 	}
 }
 //ожидает список с повторяющимися датой/размером,
 //выводит moved и UNDETECED MOVED
-void print_moved(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & vec){
+void print_moved(ostream & str, const vector<pair<pair<char,string>,pair<long long,long long>>> & vec){
 	str<<"#=== moved ==="<<endl;
 	if(vec.empty())	return;
-	vector<pair<pair<char,string>,pair<long long,int>>> undetected;
+	vector<pair<pair<char,string>,pair<long long,long long>>> undetected;
 	auto first = vec.begin();
 	auto last = vec.end();
 	while(first!=last){
@@ -267,14 +267,14 @@ met:
 			auto it = first;
 			if(it->first.first!='-')
 				goto met;
-			pair<long long,int> sss = it->second;
+			pair<long long,long long> sss = it->second;
 			const char * name = it->first.second.c_str();
 			it++;
 			if(it->first.first!='+')
 				goto met;
 			if(it->second.first!=sss.first || it->second.second!=sss.second)
 				goto met;
-			str	<<"git mv \""<<quote_out(name)<<"\" \""<<quote_out(it->first.second.c_str())<<'"'
+			str	<<"mv \""<<quote_out(name)<<"\" \""<<quote_out(it->first.second.c_str())<<'"'
 				<<" # "<<bytes(it->second.first)<<endl;
 		}
 		first=next;
@@ -286,24 +286,24 @@ met:
 		str<<"#"<<*it<<endl;
 }
 //ожидает сначала список - и выводит deleted, а потом список + и выводит added
-void print_delited_added(ostream & str, const vector<pair<pair<char,string>,pair<long long,int>>> & vec){
+void print_delited_added(ostream & str, const vector<pair<pair<char,string>,pair<long long,long long>>> & vec){
 	cout<<"#=== deleted ==="<<endl;//<<vec<<endl;
 	if(vec.empty())	return;
 	auto it=vec.begin();
 	if(it->first.first=='-'){
 		for(; it!=vec.end() && it->first.first=='-'; it++)
-			str <<"git rm \""<<quote_out(it->first.second.c_str())<<'"'
-				<<" # "<<bytes(it->second.first)<<" at "<<datetime(it->second.second)<<endl;
+			str <<"rm \""<<quote_out(it->first.second.c_str())<<'"'
+				<<" # "<<bytes(it->second.first)<<" at "<<datetime(it->second.second/1000000000)<<endl;
 	}
 	if(it==vec.end()) return;
 	str<<endl<<"#=== added ==="<<endl;
 	for(; it!=vec.end() && it->first.first=='+'; it++)
-		str <<"git add \""<<quote_out(it->first.second.c_str())<<'"'
-			<<" # "<<bytes(it->second.first)<<" at "<<datetime(it->second.second)<<endl;
+		str <<"add \""<<quote_out(it->first.second.c_str())<<'"'
+			<<" # "<<bytes(it->second.first)<<" at "<<datetime(it->second.second/1000000000)<<endl;
 }
 
 template <class it_t>
-void read_diff(it_t & strin, vector<pair<pair<char,string>,pair<long long,int>>> * diff, bool inverse){
+void read_diff(it_t & strin, vector<pair<pair<char,string>,pair<long long,long long>>> * diff, bool inverse){
 	read_start_line(strin);
 	if(!read_fix_str(strin,"---")){
 		cerr<<"на позиции "<<linecol(strin)<<" ожидалось '---'"<<endl;
@@ -327,7 +327,7 @@ void read_diff(it_t & strin, vector<pair<pair<char,string>,pair<long long,int>>>
 		char c;
 		string path;
 		long long size;
-		int date;
+		long long date;
 		#define ifnot(expr)	if(!(expr))
 		ifnot(read(strin)>>charclass_c(make_span("+-"),&c)>>dec(&size)>>'\t'>>dec(&date)
 						>>'\t'>>until_charclass(spn_crlf,&path)){
