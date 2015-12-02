@@ -83,7 +83,7 @@ mytar()
 
 TRASH_DIR=~/.trash
 #=== rm-to-trash ===
-if [ -n "$(cp --version | grep 8.24)" ]; then
+if false;then #[ -n "$(cp --version | grep 8.24)" ]; then
     rm-to-trash(){
 	#echo $@
 	while [ $# -gt 0 ]; do
