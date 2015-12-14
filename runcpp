@@ -184,12 +184,17 @@ mygcc(){
 	awk 'NR<=40;  END {print "runcpp: compile messages lines " NR;}'
     echo "$PIPESTATUS"
 }
+myclang(){
+    clang++ $options "$cppname" -o "$exename" $post_options
+    echo "$PIPESTATUS"
+}
 compile()
 {
 # ????? почему вывод в stdout не работает, если  вывод g++ не перенаправлять в stdout ???
     if [ $clang == 1 ] ;then
 	echo "runcpp: clang++ $cppname (options = $options)" >&2
-	clang++ $options "$cppname" -o "$exename" $post_options
+	mess="$(myclang)"
+	echo "$mess" | head -n -1 >&2
     else
 	echo "runcpp: g++ $cppname (options = $options)" >&2
 	mess="$(mygcc)" 
