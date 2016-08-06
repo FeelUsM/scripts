@@ -180,7 +180,7 @@ if [ $(uname -o) == "Cygwin" -a -z "$suffix" ]; then exename="$exename".exe; fi
 
 #=== compile function ===
 mygcc(){
-    g++ $options "$cppname" -o "$exename" $post_options 2>&1 |
+    g++ -fdiagnostics-color $options "$cppname" -o "$exename" $post_options 2>&1 |
 	awk 'NR<=40;  END {print "runcpp: compile messages lines " NR;}'
     echo "$PIPESTATUS"
 }
