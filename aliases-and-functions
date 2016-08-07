@@ -3,6 +3,12 @@
 #здесь находятся алиасы и функции, которые можно запускать из других скриптов, если подключить это файл
 #но я так ни разу не делал
 
+#=== bool ===
+bool(){ test "$@" && echo true || echo false; }
+# pred=$(bool 2 = 2)
+# if $pred; then ...
+# $pred && echo 1 || echo 2
+
 #=== wget ===
 alias wgetsite="wget -r -np -k -p -e robots=off -U mozilla --random-wait"
 #-r              recursive

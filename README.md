@@ -33,6 +33,7 @@
 **aliases-and-functions** - алиасы и функции, которые можно запускать из других скриптов, если подключить это файл.
 (Но я так ни разу не делал, у меня он подключается в configs/shellrc.)
 
+* **bool** - pred=$(bool 2 = 2); if $pred; then ... ; $pred && echo 1 || echo 2
 * **wgetsite** адрес            - рекурсивный wget, который игнорирует robots.txt
 * **yacadav** - cadaver for yandex disk
 * **path-n**  - sed-скрипт который выводит $PATH с одним путем на строку
