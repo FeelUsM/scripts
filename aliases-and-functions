@@ -136,3 +136,10 @@ append_line() {
 	[ -z "$(grep -P "\\Q$1\\E" "$2")" ] && echo "$1" >> "$2" || return 0
 }
 
+# возвращает столбец;строку , где находится курсор
+curpos() {
+	echo -en "\E[6n"
+	local CURPOS
+	read -sdR CURPOS
+	echo ${CURPOS#*[}
+}
