@@ -138,8 +138,19 @@ append_line() {
 
 # возвращает столбец;строку , где находится курсор
 curpos() {
-	echo -en "\E[6n"
-	local CURPOS
-	read -sdR CURPOS
-	echo ${CURPOS#*[}
+	# based on a script from http://invisible-island.net/xterm/xterm.faq.html
+	exec < /dev/tty
+	local oldstty=$(stty -g)
+	stty raw -echo min 0
+	# on my system, the following line can be replaced by the line below it
+	echo -en "\033[6n" > /dev/tty
+	# tput u7 > /dev/tty    # when TERM=xterm (and relatives)
+	local pos
+	read -r -d R pos
+	stty $oldstty
+
+	#echo -en "\E[6n"
+	#local CURPOS
+	#read -sdR CURPOS
+	echo ${pos#*[}
 }
