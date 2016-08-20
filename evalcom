@@ -1,5 +1,5 @@
 #! /bin/bash
-[ $# == 0 -o $1 == -h -o $1 == --help ] &&
+[ $# == 0 -o "$1" == -h -o "$1" == --help ] &&
 cat << EOF
 eval command with builtin command eval
 that's all
