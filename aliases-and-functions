@@ -106,13 +106,18 @@ else  # difference in cp -i and cp -I
     rm-to-trash(){
 	#echo $@
 	while [ $# -gt 0 ]; do
+		local pat
+		local pat_="$1"
 	    case "$1" in /*) pat="$1";; *) pat="$PWD/$1";; esac
 	    shift
 	    local dir="$TRASH_DIR/$(dirname "${pat#/}")"
 	    #echo "pat= $pat dir= $dir"
 	    mkdir -p "$dir" && #echo mkdir OK &&
+	    # mv -i не умеет сливать папки
 	    cp -Pri --preserve=timestamp "$pat" "$dir" && #echo cp OK &&
-	    env rm -rf "$pat" #&& echo rm OK
+	    env rm -rf "$pat" && #echo rm OK
+	    echo  "$pat_" перемещено в "$dir"
+	    # todo для повторяющихся папок все объединить
 	done
     }
 fi
