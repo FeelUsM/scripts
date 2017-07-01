@@ -304,13 +304,19 @@ function apt-depends { # из файла setup.ini на awk создает де�
         values[large[each]]
       return small in values
     }
+    function prpg2(fpg) {
+      if (smartmatch(fpg, spath)) return
+      spath[length(spath)+1] = fpg
+      print join(spath, 1, length(spath), " > ")
+      delete spath[length(spath)]
+    }
     function prpg(fpg) {
       if (smartmatch(fpg, spath)) return
       spath[length(spath)+1] = fpg
       print join(spath, 1, length(spath), " > ")
       if (isarray(reqs[fpg]))
         for (each in reqs[fpg])
-          prpg(reqs[fpg][each])
+          prpg2(reqs[fpg][each])
       delete spath[length(spath)]
     }
     ' setup.ini
