@@ -89,38 +89,95 @@ mytar()
 
 TRASH_DIR=~/.trash
 #=== rm-to-trash ===
-if false;then #[ -n "$(cp --version | grep 8.24)" ]; then
-    rm-to-trash(){
-	#echo $@
-	while [ $# -gt 0 ]; do
-	    case "$1" in /*) pat="$1";; *) pat="$PWD/$1";; esac
-	    shift
-	    local dir="$TRASH_DIR/$(dirname "${pat#/}")"
-	    #echo "pat= $pat dir= $dir"
-	    mkdir -p "$dir" && #echo mkdir OK &&
-	    cp -PrI --preserve=timestamp "$pat" "$dir" && #echo cp OK &&
-	    env rm -rf "$pat" #&& echo rm OK
-	done
-    }
-else  # difference in cp -i and cp -I
-    rm-to-trash(){
-	#echo $@
-	while [ $# -gt 0 ]; do
-		local pat
-		local pat_="$1"
-	    case "$1" in /*) pat="$1";; *) pat="$PWD/$1";; esac
-	    shift
-	    local dir="$TRASH_DIR/$(dirname "${pat#/}")"
-	    #echo "pat= $pat dir= $dir"
-	    mkdir -p "$dir" && #echo mkdir OK &&
-	    # mv -i не умеет сливать папки
-	    cp -Pri --preserve=timestamp "$pat" "$dir" && #echo cp OK &&
-	    env rm -rf "$pat" && #echo rm OK
-	    echo  "$pat_" перемещено в "$dir"
-	    # todo для повторяющихся папок все объединить
-	done
-    }
+rm-to-trash(){
+if [ $# == 0 -o "x$1" = x--help -o "x$1" = x-h ]; then
+	echo "usage:"
+	echo "   <rm> [-h|--help]         --- вывести этот usage"
+	echo "   <rm> -f|-rf objects...   --- вызов системного rm с соответствующими опциями и объектами"
+	echo "   <rm> [-v] objects...     --- перемещение объектов в корзину, -v - verbose"
+	return 1
 fi
+
+if [ "x$1" = x-f -o "x$1" = x-rf ]; then
+	env rm "$@"
+else
+	if [ "x$1" = x-v ];then
+		local verbose=1; 
+		shift
+	else
+		local verbose=0
+	fi
+	local dt="$( date '+%Y-%m-%d %H-%M-%S')"
+	local exitcode=0
+	while [ $# -gt 0 ]; do
+		case "$1" in /*) local fname="$1";; *) local fname="$PWD/$1";; esac
+		shift
+		local efname="$dt$(echo "$fname" | sed -E 's/%/%%/g; s/\//%-/g')"
+		[ $verbose = 1 ] && echo "$fname --> $TRASH_DIR/$efname"
+		mv -i "$fname" "$TRASH_DIR/$efname" || exitcode=1
+	done
+	return $exitcode
+fi
+}
+
+function restore(){
+if [ $# == 0 -o "x$1" = x--help -o "x$1" = x-h ]; then
+	echo "usage:"
+	echo "   restore [-h|--help]           --- вывести этот usage"
+	echo "   restore [-v] [-p] objects...  --- перемещение объектов из корзины на свои места"
+	echo "-v - verbose; -p - предварительно создваать папки (если отсутствуют), куда должны быть перемещены объекты"
+	echo "объектами могут быть как имена удаленных файлов и каталогов в файловой системе, так и в папке $TRASH_DIR"
+	return 1
+fi
+	if [ "x$1" = x-v ];then
+		local verbose=1; 
+		shift
+	else
+		local verbose=0
+	fi
+	if [ "x$1" = x-p ];then
+		local mkdirp=1; 
+		shift
+	else
+		local mkdirp=0
+	fi
+	local exitcode=0
+	while [ $# -gt 0 ]; do
+		case "$1" in /*) local fname="$1";; *) local fname="$PWD/$1";; esac
+		shift
+		if [ "$(dirname "$fname")" = "$TRASH_DIR" ]; then
+			local esctrashdir="$(echo "$TRASH_DIR" | sed 's/\./\\\./g; s/\//\\\//g')"
+			local efname="$(echo "$fname" | sed -E "s/$esctrashdir"'\/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] [0-9][0-9]-[0-9][0-9]-[0-9][0-9]//; s/%(%|-)/\/\1/g; s/\/%/%/g; s/\/-/\//g')"
+			[ $verbose = 1 ] && echo "$fname --> $efname"
+			if [ -d "$efname" ]; then
+				echo "restore отказывается заменять существующий каталог каталогом из корзины: $efname" && exitcode=1
+			else
+				[ $mkdirp = 1 ] && mkdir -p "$(dirname "$efname")"
+				mv -i "$fname" "$efname" || exitcode=1
+			fi
+		else
+			local efname="$(echo "$fname" | sed -E 's/%/%%/g; s/\//%-/g')"
+			local paths="$(find ~/.trash -name "????-??-?? ??-??-??$efname")"
+			if [ $(echo "$paths" | wc -l) = 1 ]; then
+				[ $verbose = 1 ] && echo "$paths --> $fname"
+				if [ -d "$fname" ]; then
+					echo "restore отказывается заменять существующий каталог каталогом из корзины: $fname" && exitcode=1
+				else
+					[ $mkdirp = 1 ] && mkdir -p "$(dirname "$fname")"
+					mv -i "$paths" "$fname" || exitcode=1
+				fi
+			elif [ $(echo "$paths" | wc -l) = 0 ]; then
+				echo в корзине не найдено ни одного файла "$fname"
+				exitcode=1
+			else
+				echo в корзине найдено более одного файла "$fname" :
+				echo "$paths" | sed -E 's/ /\\ /g'
+				exitcode=1
+			fi
+		fi
+	done
+	return $exitcode
+}
 #----
 
 # создает симлинк $1 указывающий на $2
