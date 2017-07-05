@@ -99,7 +99,7 @@ if [ $# == 0 -o "x$1" = x--help -o "x$1" = x-h ]; then
 fi
 
 if [ "x$1" = x-f -o "x$1" = x-rf ]; then
-	env rm "$@"
+	env rm "$@" # todo надо сделать вариант вызова rm без аргументов -f и -rf
 else
 	if [ "x$1" = x-v ];then
 		local verbose=1; 
@@ -146,21 +146,21 @@ fi
 		case "$1" in /*) local fname="$1";; *) local fname="$PWD/$1";; esac
 		shift
 		if [ "$(dirname "$fname")" = "$TRASH_DIR" ]; then
-			local esctrashdir="$(echo "$TRASH_DIR" | sed 's/\./\\\./g; s/\//\\\//g')"
+			local esctrashdir="$(echo "$TRASH_DIR" | sed 's/\./\\\./g; s/\//\\\//g')" # todo теоретически надо экранировать больше симолов
 			local efname="$(echo "$fname" | sed -E "s/$esctrashdir"'\/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] [0-9][0-9]-[0-9][0-9]-[0-9][0-9]//; s/%(%|-)/\/\1/g; s/\/%/%/g; s/\/-/\//g')"
 			[ $verbose = 1 ] && echo "$fname --> $efname"
-			if [ -d "$efname" ]; then
+			if [ -d "$efname" ]; then # todo надо указать еще типы аналогичных директорий, типа сокеты, симлинки, файлы-потоки...
 				echo "restore отказывается заменять существующий каталог каталогом из корзины: $efname" && exitcode=1
 			else
 				[ $mkdirp = 1 ] && mkdir -p "$(dirname "$efname")"
 				mv -i "$fname" "$efname" || exitcode=1
 			fi
 		else
-			local efname="$(echo "$fname" | sed -E 's/%/%%/g; s/\//%-/g')"
-			local paths="$(find ~/.trash -name "????-??-?? ??-??-??$efname")"
+			local efname="$(echo "$fname" | sed -E 's/%/%%/g; s/\//%-/g')" # todo теоретически надо экранировать больше симолов
+			local paths="$(find ~/.trash -name "????-??-?? ??-??-??$efname")" # todo -name надо заменить на -regexp, потому что find этот шаблон может найти в подкаталогах ~/.trash
 			if [ $(echo "$paths" | wc -l) = 1 ]; then
 				[ $verbose = 1 ] && echo "$paths --> $fname"
-				if [ -d "$fname" ]; then
+				if [ -d "$fname" ]; then # todo надо указать еще типы аналогичных директорий, типа сокеты, симлинки, файлы-потоки...
 					echo "restore отказывается заменять существующий каталог каталогом из корзины: $fname" && exitcode=1
 				else
 					[ $mkdirp = 1 ] && mkdir -p "$(dirname "$fname")"
