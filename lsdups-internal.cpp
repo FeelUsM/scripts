@@ -139,12 +139,13 @@ namespace io_util{
 	}
 }
 
-typedef pair<string,pair<long long,long long>> sii_t;
+typedef pair<string,pair<long long,long long>> sii_t; // string int int
 typedef vector<sii_t> sii_cont;
-typedef multimap<string,pair<string,long long>> hps_t;
+typedef multimap<string,pair<string,long long>> hps_t; // hash path size
 
 namespace input{
-	int read_files(const char * name_of_files, sii_cont * ppsd){
+	// читает в ppsd список файлов
+	int read_files(const char * name_of_files, sii_cont * ppsd /*pointer to path size date*/){
 		forward_adressed_stream files(true, new file_on_FILE(name_of_files,"r"));
 		if(!files){	
 			cerr <<"не смог открыть файл "<<name_of_files <<endl;	
@@ -152,10 +153,10 @@ namespace input{
 		}
 		while(!atend(files.iter())){
 			sii_t sii;
-			if(!(read_dec(files.iter(),&sii.second.first)
-				&&E2F(read_dec(files.iter(),&sii.second.second))
+			if(!(read_dec(files.iter(),&sii.second.first) // read size
+				&&E2F(read_dec(files.iter(),&sii.second.second)) // read date
 				&&E2F(read_fix_char(files.iter(),'\t'))
-				&&E2F(read_until_charclass(files.iter(),spn_crlf,&sii.first).reset())
+				&&E2F(read_until_charclass(files.iter(),spn_crlf,&sii.first).reset()) // read path
 			))
 			{	cerr <<"error in file of files "<<name_of_files<<" at " <<get_linecol(files.iter()) <<endl; return 1;	}
 			read_start_line(files.iter());
@@ -199,7 +200,7 @@ namespace input{
 		
 		using namespace io_util;
 			
-		int comstrlen=ARG_MAX-1000;
+		int comstrlen=ARG_MAX-1000; // максимальная длина командной строки
 		{
 			forward_adressed_stream envlen(true, new file_on_FILE(popen("env | wc -c","r")));
 			if(!envlen){	cerr<<"не смог выполнить 'env | wc -c'"<<endl;	return 1;	}
@@ -207,7 +208,7 @@ namespace input{
 			if(!read_dec(envlen.iter(),&x)){	cerr<<"не смог прочитать число в 'env | wc -c'"<<endl;	return 1;	}
 			read_spcs(envlen.iter());
 			if(!atend(envlen.iter())){	cerr<<"после прочтения 'env | wc -c' что-то осталось"<<endl;	return 1;	}
-			comstrlen-=x;
+			comstrlen-=x; // уменьшаем comstrlen на суммарную длину переменных среды
 		}
 		//cerr<<"comstrlen="<<comstrlen<<endl;
 		std::ofstream hashes(name_of_hashes,std::ofstream::app);
@@ -216,9 +217,10 @@ namespace input{
 		long long eval_size=0;
 		for(auto it = ppsd2->begin(); it!=ppsd2->end(); it++)
 			eval_size+=it->second.first;
-		while(!ppsd2->empty())
+		while(!ppsd2->empty()) // для каждого набора файлов (его размер ограничивается comstrlen)
 		{
 			using namespace quote_util;
+			// формируем команду в array
 			//cerr<<"===================================================="<<endl
 			//	<<"хотим посчитать хеши для следующих файлов"<<endl;
 			char array[comstrlen];
@@ -240,6 +242,7 @@ namespace input{
 			//cerr<<"------------------------"<<endl<<array<<endl<<"-----------------------------------"<<endl;
 			if(eval_size) cerr<<"осталось посчитать "<<bytes(eval_size)<<endl;
 			int iter_open=0;
+			// запускаем команду
 		try_open:
 			forward_adressed_stream md5(true,new file_on_FILE(popen(array,"r")));
 			if(!md5){
@@ -250,6 +253,7 @@ namespace input{
 				}
 				return 1;
 			}
+			// парсим ее результат
 			while(read_fix_str(md5.iter(),"MD5(")){
 				//dump(md5.iter(),"будет прочитано: ");
 				string hash;
@@ -265,7 +269,7 @@ namespace input{
 				//cerr <<"после цикла"<<endl;
 				if(ppsd2->begin()==it){	dump(md5.iter(),"не понятно, что посчитал openssl md5:\n");	return 1;	}
 				hashes<<hash<<'\t'<<ppsd2->begin()->second.second<<'\t'<<ppsd2->begin()->first<<endl;
-				phps->insert(move(make_pair(move(hash),make_pair(move(ppsd2->begin()->first),ppsd2->begin()->second.first))));
+				phps->insert(move/*лишний?*/(make_pair(move(hash),make_pair(move(ppsd2->begin()->first),ppsd2->begin()->second.first))));
 				ppsd2->erase(ppsd2->begin());
 			}
 			while(ppsd2->begin()!=it){
@@ -446,9 +450,9 @@ int main(int argc, const char * argv[]){
 	print_script_rmdirs(&hps,psd);
 }
 
+//=== вывести простым способом ===
 void print_simple(const hps_t & hps){
 	using namespace io_util;
-	//=== вывести простым способом ===
 	auto sss=hps.cbegin();
 	long long size=0;
 	cout<<"///"<<hps.cbegin()->second.second<<endl;
@@ -568,9 +572,12 @@ struct reverse_less{
 	}
 };
 //gcc-шная библиотека совершенно напрасно определяет операторы сравнения для векторов, сетов и наверно еще много чего
+
+// группа одинаковых файлов
 struct GF{
 	long long size;
-	map<vector<string>,bool,reverse_less> paths;
+	map<vector<string>,bool,reverse_less> paths; // пути отсортированы с конца
+	// т.е. рядом файлы, с одинаково заканчивающимся путем
 };
 typedef map<string,GF> GF_cont;//по хешу
 
@@ -586,7 +593,7 @@ vector<string> s2vs(const char * str){
 		name.push_back(a);
 		return move(name);
 }
-//=== сформировать ГФы ===
+//=== сформировать ГФы (Группы Файлов) ===
 void make_GFs(GF_cont * pGFs, const hps_t * phps){
 	for(auto it=phps->cbegin(); it!=phps->cend(); it++){
 		(*pGFs)[it->first].paths.insert(make_pair(s2vs(it->second.first.c_str()),false));
@@ -608,6 +615,7 @@ void make_GF0(GF * pGF0, GF_cont * pGFs){
 		pGF0->size=-1;
 }
 
+// отображение из множества путей в отображение из множества путей в указатели(итераторы) на группы файлов
 struct size_less{
 	bool operator()(const vector<string> & l, const vector<string> & r)const{
 		if(l.size()!=r.size())
@@ -618,7 +626,7 @@ struct size_less{
 };
 typedef map<set<vector<string>,size_less>,map<vector<string>,GF_cont::const_iterator,size_less>> GGP_t;
 
-// === сформировать ГПы ===
+// === сформировать ГПы (Группы Папок) ===
 //требуется reverse_less в map-е в GF
 //true, если пары не использованы (bool==false) и последние n имен совпадают
 bool end_eq_n(const pair<vector<string>,bool> & l, const pair<vector<string>,bool> & r, int n){
@@ -649,15 +657,25 @@ vector<string> my_tail(const vector<string> & src, int n){//vithout_tail_path
 }
 //сформировать ГПы
 void make_GPs(GGP_t * pGPs, GF_cont * pGFs){
-	for(auto itgf=pGFs->begin(); itgf!=pGFs->end(); itgf++){//по всем группам файлов
+	// --- по всем группам файлов ---
+	for(auto itgf=pGFs->begin(); itgf!=pGFs->end(); itgf++){
 		//вывод ГФ-ов
 		//cout <<itgf->second.size <<"===================================="<<endl;
 		//for(auto it2=itgf->second.paths.cbegin(); it2!=itgf->second.paths.cend(); it2++)
 		//	cout <<it2->first <<endl;
-		int max_nest_eq=0;
+		int max_nest_eq=0; // самя длинная совпадающая концовка
+		/*
+			типа для
+			a/b/c
+			e/f/c
+			g/f/c
+			это будет /f/c, и ее длина =2
+		*/
+		// --- по всем файлам в группе ---
 		auto itf1=itgf->second.paths.cbegin(), itf2=itgf->second.paths.cbegin();
 		std::advance(itf2,1);//гарантировано, что элементов по крайней мере 2
-		for(; itf2!=itgf->second.paths.cend(); itf1++, itf2++){//по всем файлам в группе
+		for(; itf2!=itgf->second.paths.cend(); itf1++, itf2++){
+			// --- ищем 
 			auto itn1=itf1->first.crbegin(), itn2=itf2->first.crbegin();
 			for(int i=0; itn1!=itf1->first.crend() && itn2!=itf2->first.crend() && i<max_nest_eq; itn1++, itn2++, i++)//
 				if(*itn1!=*itn2)
@@ -942,25 +960,26 @@ bool end_by(const vector<string> & base, const vector<string> & end){
 void print_GGX(const GGPsGFs_t & GGX, const sii_cont & psd){
 	using namespace io_util;
 	for(auto itpath=GGX.begin(); itpath!=GGX.end(); itpath++){
-		cout<<"#==== \""<<(itpath->first)<<"\" ===="<<endl<<endl;
+		cout<<"f(){ #==== \""<<(itpath->first)<<"\" ===="<<endl<<":"<<endl;
 		//cerr<<"#==== \""<<(itpath->first)<<"\" ===="<<endl;
+		long long ggp_size=0;
 		//вывод групп папок
 		for(auto itggp = itpath->second.first.begin(); itggp!=itpath->second.first.end(); itggp++){
 			set<string> ggp_exts;
 			//*itggp <-> GGP_t
-			int ggp_size=0;
+			int gp_size=0;
 			for(auto itgp = itggp->begin(); itgp!=itggp->end(); itgp++){
 				//itgp->first  <-> set<vector<string>,size_less>
 				//itgp->second <-> map<vector<string>,GF_cont::iterator,size_less>
-				long long gp_size=0;
+				long long gp1_size=0;
 				set<string> exts;
 				for(auto itf = itgp->second.begin(); itf!=itgp->second.end(); itf++){
 					string ext = find_ext(&*prev(itf->first.end()));
 					exts.insert(ext);
 					ggp_exts.insert(move(ext));
-					gp_size+=itf->second->second.size;
+					gp1_size+=itf->second->second.size;
 				}
-				cout<<"rmfromdir(){ # "<<itgp->second.size()<<" файлов, "<<bytes(gp_size);
+				cout<<"rmfromdir(){ # "<<itgp->second.size()<<" файлов, "<<bytes(gp1_size);
 					for(auto it = exts.begin(); it!= exts.end(); it++)
 						cout<<' '<<*it;
 				cout<<endl;
@@ -989,7 +1008,7 @@ void print_GGX(const GGPsGFs_t & GGX, const sii_cont & psd){
 								cout <<"\t#rm -f \""<<(it->first)<<"\""<<endl;
 				}
 				cout <<"}"<<endl;
-				ggp_size+= gp_size*(itgp->first.size()-1);
+				gp_size+= gp1_size*(itgp->first.size()-1);
 				
 				//вывод списка папок
 				for(auto itp = itgp->first.begin(); itp!=itgp->first.end(); itp++){
@@ -1030,7 +1049,8 @@ void print_GGX(const GGPsGFs_t & GGX, const sii_cont & psd){
 			cout<<"] (";
 			for(auto it = ggp_exts.begin(); it!=ggp_exts.end(); it++)
 				cout<<" "<<*it;
-			cout<<") "<<bytes(ggp_size)<<endl<<endl;
+			cout<<") "<<bytes(gp_size)<<endl<<endl;
+			ggp_size+=gp_size;
 		}
 		//вывод групп файлов
 		int gf_size=0;
@@ -1053,6 +1073,8 @@ void print_GGX(const GGPsGFs_t & GGX, const sii_cont & psd){
 				cout<<(*ititgf)->second.paths.size()<<' ';
 			cout<<"] "<<bytes(gf_size)<<" --------------------------------------------"<<endl<<endl;
 		}
+		ggp_size+=gf_size;
+		cout << "}" << endl << "f # "<< bytes(ggp_size) <<endl;
 	}
 }
 
