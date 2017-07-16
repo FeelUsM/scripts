@@ -102,7 +102,7 @@ todo:
 
 ostream & operator<<(ostream & str, const pair<pair<char,string>,pair<long long,long long>> & it);
 ostream & operator<<(ostream & str, const vector<pair<pair<char,string>,pair<long long,long long>>> & );
-void print_changed(ostream & str, const vector<pair<pair<char,string>,pair<long long,long long>>> & );
+void print_changed(ostream & str, vector<pair<pair<char,string>,pair<long long,long long>>> & );
 void print_moved(ostream & str, const vector<pair<pair<char,string>,pair<long long,long long>>> & );
 void print_delited_added(ostream & str, const vector<pair<pair<char,string>,pair<long long,long long>>> & );
 template <class it_t>
@@ -222,10 +222,57 @@ std::ostream & operator<<(std::ostream & str, bytes bb){
 }
 
 //ожидает список -+-+-+... и чтобы у пар совпадали имена
-void print_changed(ostream & str, const vector<pair<pair<char,string>,pair<long long,long long>>> & vec){
-	cout<<"# === changed ==="<<endl;//<<vec<<endl;
-	if(vec.empty())	return;
+void print_changed(ostream & str, vector<pair<pair<char,string>,pair<long long,long long>>> & vec){
+	vector<pair<pair<char,string>,pair<long long,long long>>> vec_c;
+	vector<pair<pair<char,string>,pair<long long,long long>>> vec_d;
 	for(auto it=vec.begin(); it!=vec.end(); it++){
+		if(it->first.first!='-'){
+			cerr<<"diffiles: ERROR: changed: expected file '-'"<<endl<<*it<<endl;
+			exit(1);
+		}
+		const char * sss = it->first.second.c_str();
+		long long old_size = it->second.first;
+		auto old_it = it++;
+		if(it->first.first!='+'){
+			cerr<<"diffiles: ERROR: changed: expected file '+'"<<endl<<*it<<endl;
+			exit(1);
+		}
+		if(it->first.second!=sss){
+			cerr<<"diffiles: ERROR: changed: expected file '+' with name "<<sss<<endl<<*it<<endl;
+			exit(1);
+		}
+		
+		if(old_size == it->second.first) {
+			vec_c.push_back(move(*old_it));
+			vec_c.push_back(move(*it));
+		}
+		else {
+			vec_d.push_back(move(*old_it));
+			vec_d.push_back(move(*it));
+		}
+	}
+	cout<<"# === changed ==="<<endl;//<<vec<<endl;
+	for(auto it=vec_d.begin(); it!=vec_d.end(); it++){
+		if(it->first.first!='-'){
+			cerr<<"diffiles: ERROR: changed: expected file '-'"<<endl<<*it<<endl;
+			exit(1);
+		}
+		const char * sss = it->first.second.c_str();
+		long long old_size = it->second.first;
+		it++;
+		if(it->first.first!='+'){
+			cerr<<"diffiles: ERROR: changed: expected file '+'"<<endl<<*it<<endl;
+			exit(1);
+		}
+		if(it->first.second!=sss){
+			cerr<<"diffiles: ERROR: changed: expected file '+' with name "<<sss<<endl<<*it<<endl;
+			exit(1);
+		}
+		str <<"add \""<<quote_out(it->first.second.c_str())<<"\" "
+			<<"#from "<<bytes(old_size)<<" to "<<bytes(it->second.first)<<" at "<<datetime(it->second.second/1000000000)<<endl;
+	}
+	cout<<"# === changed, but size not changed ==="<<endl;//<<vec<<endl;
+	for(auto it=vec_c.begin(); it!=vec_c.end(); it++){
 		if(it->first.first!='-'){
 			cerr<<"diffiles: ERROR: changed: expected file '-'"<<endl<<*it<<endl;
 			exit(1);
