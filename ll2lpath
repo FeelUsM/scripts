@@ -80,7 +80,7 @@ myecho dirs = "$dirs"
 myecho oldfiles = "$oldfiles"
 myecho olddirs = "$olddirs"
 
-eval ls -alR --time-style=+%s%N "$args"   2>"$wd"/ls-log | tee >(grep ':$' > "$wd"/last-dirs) |
+eval ls -alLR --time-style=+%s%N "$args"   2>"$wd"/ls-log | tee >(grep ':$' > "$wd"/last-dirs) |
     runcpp ll2lpath-internal.c "$wd"/last-files "$wd"/log "$wd" .sync .git
 #в "$wd"/last-dirs также будут попадать файлы, заканчивающиеся на :
 [ "${PIPESTATUS[2]}" != 0 ] && exit 1

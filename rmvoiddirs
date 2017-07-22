@@ -31,7 +31,7 @@ while read line ; do
 		dir="${line%:}"
 		after_dir=1
 	fi
-done < <(ls -AR)
+done < <(ls -ALR)
 if [ $after_dir == 1 ]; then
 	recursive_rm "$dir"
 fi
