@@ -1,3 +1,48 @@
+/*
+=== lsdups - manual ===
+получает на вход список файлов и список хешей некоторых файлов (последнее необязательно)
+выделяет файлы с одинаковыми размерами, 
+и среди тех из них у кого нет хеша - вычисляет его и записывает в файл с хешами
+после чего рассматриваются только файлы с одинаковыми хешами
+--- после чего идет умная сортировка ---
+ГФ - группа файлов - группа одинаковых файлов (не меньше двух)
+ГП - группа папок - набор папок, содержащих одинаковые файлы с одинаковыми именами
+	
+	состоит из списка папок (не меньше двух) и списка файлов (1 или более) относительно каждой папки
+	в каждой ГФ:
+		ищутся файлы с самым длинным совпадающим с конца путем, вычисляется его длина
+		после чего ищутся файлы с совпадающим с конца путем этой длины,
+		совпадающая часть отбрасывается, и из полученного формируется список папок
+	И так в каждый список папок добавляется файл, а требуемая длина совпадающего с конца пути постепенно уменьшается
+ГГПФ - группа групп папок и файлов - находящихся внутри определенной папки
+	в _ГГП помещается какая-то одна ГП
+	_ГГП имеет
+		список общих папок 
+		и список общих файлов
+	по всем ГП ищется пересечение
+		списка общих папок со списком папок текущей ГП
+		списка общих файлов со списком фалов текущей ГП
+	если хотябы одно из них не пусто, то
+		эта ГП добавляется в _ГГП, и списки общих папок и общих файлов обновляются
+	после чего в списке общих папок ищется общий путь, и по нему эта _ГГП добавляется в ГГПФ
+ГФы, которые учавствовали в ГПах игнорируются
+	но из ГФ с файлами размера 0 файлы, файлы которые учавствовали в ГП-ах просто удаляются,
+	и таким образом эта ГФ не может игнорироваться, и в ней может присутствовать 1 файл (или более)
+для остальных ГФов для каджой ищется общий путь, и по нему она добавляется в ГГПФ
+--- после чего идет вывод ---
+он разбит на ГГПФ с заголовками #=== === и функцией f, с последующим ее вызовом, и выводом е размера
+вначале выводятся все _ГГП, в конце отделенные #--- --- со статистикой
+	внутри выводяится ГПы - функция rmfromdir со статистикой и последующие ее вызовы
+		внутри rmfromdir() для каждого файла выводится
+			rm сам файл, # его размер, хэш, 
+			количество файлов, которые учавствуют в ГП, но не относятся к текущему файлу в данной ГП (еще ...)
+			#rm -f файлы, которые принадлежат текущему ГФу, но не относятся ни к одной ГП
+				- но только при первом разе // убрано
+		потом выводятся вызовы #rmfromdir с указанием количества файлов в директории, которых нет в списке файлов этой ГП
+			и если их меньше пяти, то они просто перечисляются дальше
+потом выводятся все ГФы, в конце #--- --- со статистикой
+	(им хэш не нужен, т.к. они все собраны в одном месте)
+*/
 #include <iostream>
 #include <fstream>
 #define ONE_SOURCE
@@ -601,6 +646,7 @@ void make_GFs(GF_cont * pGFs, const hps_t * phps){
 	}
 }
 //=== ГФ, size=0 ===
+//pGF0->size=-1; - если GF0 отсутствует
 void make_GF0(GF * pGF0, GF_cont * pGFs){
 	auto it0 = pGFs->begin();
 	for(; it0!=pGFs->end(); it0++)
@@ -612,10 +658,11 @@ void make_GF0(GF * pGF0, GF_cont * pGFs){
 		pGFs->erase(it0);
 	}
 	else
-		pGF0->size=-1;
+		pGF0->size=-1; // GF0 отсутствует
 }
 
-// отображение из множества путей в отображение из множества путей в указатели(итераторы) на группы файлов
+// контейнер групп папок
+// отображение из списка папок в (отображение из списка файлов в указатели(итераторы) на группы файлов)
 struct size_less{
 	bool operator()(const vector<string> & l, const vector<string> & r)const{
 		if(l.size()!=r.size())
@@ -624,7 +671,7 @@ struct size_less{
 			return std::lexicographical_compare(l.cbegin(),l.cend(),r.cbegin(),r.cend());
 	}
 };
-typedef map<set<vector<string>,size_less>,map<vector<string>,GF_cont::const_iterator,size_less>> GGP_t;
+typedef map<set<vector<string>,size_less>,map<vector<string>,GF_cont::const_iterator,size_less>> GP_cont;
 
 // === сформировать ГПы (Группы Папок) ===
 //требуется reverse_less в map-е в GF
@@ -656,9 +703,11 @@ vector<string> my_tail(const vector<string> & src, int n){//vithout_tail_path
 	return move(q);
 }
 //сформировать ГПы
-void make_GPs(GGP_t * pGPs, GF_cont * pGFs){
+void make_GPs(GP_cont * pGPs, GF_cont * pGFs){
 	// --- по всем группам файлов ---
 	for(auto itgf=pGFs->begin(); itgf!=pGFs->end(); itgf++){
+		// itgf->first - хеш группы файлов
+		// itgf->second - GF
 		//вывод ГФ-ов
 		//cout <<itgf->second.size <<"===================================="<<endl;
 		//for(auto it2=itgf->second.paths.cbegin(); it2!=itgf->second.paths.cend(); it2++)
@@ -674,6 +723,8 @@ void make_GPs(GGP_t * pGPs, GF_cont * pGFs){
 		// --- по всем файлам в группе ---
 		auto itf1=itgf->second.paths.cbegin(), itf2=itgf->second.paths.cbegin();
 		std::advance(itf2,1);//гарантировано, что элементов по крайней мере 2
+			// itf1, itf2 - парочка соседних итераторов по GF::paths
+			// itf1/2->first - "path"
 		for(; itf2!=itgf->second.paths.cend(); itf1++, itf2++){
 			// --- ищем 
 			auto itn1=itf1->first.crbegin(), itn2=itf2->first.crbegin();
@@ -689,24 +740,27 @@ void make_GPs(GGP_t * pGPs, GF_cont * pGFs){
 		for(;max_nest_eq>0; max_nest_eq--){
 			//cout << "max_nest_eq = " << max_nest_eq <<endl;
 
-			using namespace std::placeholders;
+			using namespace std::placeholders;// для _1, _2
 			auto first = itgf->second.paths.begin();
 			auto last = itgf->second.paths.end();
+			// идем по всем путям группы файлов, и выбираем те, у которых концы путей длиной max_nest_eq совпадают
 			while((first = adjacent_find(first,last,bind(end_eq_n,_1,_2,max_nest_eq)))!=last){
 				auto next = first;
-				typename GGP_t::key_type 
-					GP_param;
+				typename GP_cont::key_type 
+					GP_param; // формируем список путей к набору файлов
 				GP_param.insert( my_vithout_tail(next->first,max_nest_eq) );
 				for(next++; next!=last && end_eq_n(*first,*next,max_nest_eq); next++){
 					GP_param.insert( my_vithout_tail(next->first,max_nest_eq) );
-					next ->second = true;
+					next ->second = true; // данный файл выцеплен=использован
 				}
-				first ->second = true;
+				first ->second = true; // данный файл выцеплен=использован
 				
 				//for(auto it = GP_param.begin(); it!= GP_param.end(); it++)
 				//	cout<<*it<<endl;
 				//cout <<"===>/"<<my_tail(first->first,max_nest_eq)<<endl;
 				
+				// выбираем список путей, выбираем файл (конец пути), он соответствует группе файлов
+				// итератор на неё-то мы и присваиваем
 				(*pGPs) [move(GP_param)] [my_tail(first->first,max_nest_eq)] = itgf;
 
 				first=next;
@@ -732,7 +786,8 @@ void next_hash(string * ps){
 	inc_s(ps,0);
 }
 //расформировать GF.size==0
-void kill_GF0(GGP_t * pGPs, GF_cont * pGFs, GF * pGF0){
+void kill_GF0(GP_cont * pGPs, GF_cont * pGFs, GF * pGF0){
+	// вычисляем максимальную длину совпадающих с конца путей
 	int max_nest_eq=0;
 	auto itf1=pGF0->paths.begin(), itf2=pGF0->paths.begin();
 	std::advance(itf2,1);//гарантировано, что элементов по крайней мере 2
@@ -756,7 +811,7 @@ void kill_GF0(GGP_t * pGPs, GF_cont * pGFs, GF * pGF0){
 		auto last = pGF0->paths.end();
 		while((first = adjacent_find(first,last,bind(end_eq_n,_1,_2,max_nest_eq)))!=last){
 			auto next = first;
-			typename GGP_t::key_type 
+			typename GP_cont::key_type 
 				GP_param;
 			GP_param.insert( my_vithout_tail(next->first,max_nest_eq) );
 			for(next++; next!=last && end_eq_n(*first,*next,max_nest_eq); next++){
@@ -808,15 +863,17 @@ template <class it_t>
 bool operator<(const it_t & l, const it_t & r){
 	return l->first < r->first;
 }
-typedef map<vector<string>,pair<set<GGP_t>,set<GF_cont::const_iterator>>> GGPsGFs_t;
+typedef map<vector<string>,pair<set<GP_cont>,set<GF_cont::const_iterator>>> GGPsGFs_t;
+ // set<GP_cont> - возможны несколько ГГП с одинаковым путем
 
 //=== сформировать ГГПы и разложить их по стартовым папкам ===
-//вырезает элемент у правого и вставляет его в левого
+//вырезает элемент у правого и вставляет(добавляет) его в левого
 template<class mapset, class it_t>
 void mapset_splice(mapset * to, mapset * from, const it_t & it){
 	to->insert(*it);//как жаль, что нет библиотечной функции, делающей move
 	from->erase(it);
 }
+// проходится по from, и копирует it->second в to
 template<class MapSet>
 set<typename MapSet::mapped_type> discard_first(const MapSet & from){
 	set<typename MapSet::mapped_type> to;
@@ -833,21 +890,25 @@ vector<string> my_head(const vector<string> & from, int n){
 	return move(to);
 }
 //сформировать ГГПы и разложить их по стартовым папкам
-void make_GGPs(GGPsGFs_t * pGGPs, GGP_t * pGPs){
+void make_GGPs(GGPsGFs_t * pGGPs, GP_cont * pGPs){
 	while(!pGPs->empty()){
-		GGP_t GGP;
-		mapset_splice(&GGP,pGPs,pGPs->begin());
-		auto union_folders = GGP.begin()->first;//copy, (set<vector<string>,size_less>)
-		decltype(typename GGPsGFs_t::mapped_type().second) union_GFps = discard_first(GGP.begin()->second);
+		GP_cont GGP;
+		mapset_splice(&GGP,pGPs,pGPs->begin()); // вырезали 1ю группу папок
+		auto union_folders = GGP.begin()->first;//copy, общие папки, инициализируются папками 1й ГП
+		decltype(typename GGPsGFs_t::mapped_type().second) 
+			union_GFps = discard_first(GGP.begin()->second); //общие указатели на GFы, 
+				// инициализируются указателями на ГФы 1й ГП
 		bool changed;
 		do{
 			changed=false;
+			// по всем группам папок
 			for(auto itgp = pGPs->begin(); itgp!=pGPs->end(); ){
-				decltype(union_folders) intersection_folders;
+				decltype(union_folders) intersection_folders; // пересечение общих папок и папок текущей ГП
 				std::set_intersection(union_folders.begin(),union_folders.end(),itgp->first.begin(),itgp->first.end(),
 					inserter(intersection_folders,intersection_folders.end()));
 				decltype(union_GFps) from_GFps = discard_first(itgp->second);
-				decltype(union_GFps) intersection_GFps;
+				decltype(union_GFps) intersection_GFps; 
+					// пересечение общих указателей на ГФы и указателей на ГФы текущей ГП
 				std::set_intersection(union_GFps.begin(),union_GFps.end(),from_GFps.begin(),from_GFps.end(),
 					inserter(intersection_GFps,intersection_GFps.end()));
 				if(intersection_folders.empty() && intersection_GFps.empty())
@@ -889,10 +950,10 @@ void make_GGPs(GGPsGFs_t * pGGPs, GGP_t * pGPs){
 				}
 			}
 		}while(changed);
-		//сформировали, теперь найдем общую папку
+		//сформировали ГГП, теперь найдем общую папку
 		auto itf1 = union_folders.begin(), itf2 = union_folders.begin();
 		itf2++;//гарантированно их хотябы 2
-		int max_eq=0;
+		int max_eq=0; // длина общего с начала пути в union_folders
 		for(auto it1=itf1->begin(), it2=itf2->begin(); it1!=itf1->end() && it2!=itf2->end() && *it1==*it2; it1++, it2++)
 			max_eq++;
 		for(itf1++, itf2++; itf2!=union_folders.end(); itf1++, itf2++){
@@ -917,7 +978,7 @@ void select_GFs(GGPsGFs_t * pGGFs, const GF_cont & GFs){
 	for(auto itgf = GFs.cbegin(); itgf!=GFs.cend(); itgf++){
 		for(auto it = itgf->second.paths.begin(); it!=itgf->second.paths.end(); it++)
 			if(it->second)
-				goto break_continue;
+				goto break_continue; // ГФы, учавствующие в ГПах игнорируются
 		gfcount++;
 		{
 			auto itf1 = itgf->second.paths.begin(), itf2 = itgf->second.paths.begin();
@@ -957,72 +1018,86 @@ bool end_by(const vector<string> & base, const vector<string> & end){
 	return true;
 }
 //=== вывести все это ===
-void print_GGX(const GGPsGFs_t & GGX, const sii_cont & psd){
+void print_GGX(const GGPsGFs_t & GGX, const sii_cont & psd/*список всех файлов, отсортированный по путям*/){
 	using namespace io_util;
 	for(auto itpath=GGX.begin(); itpath!=GGX.end(); itpath++){
 		cout<<"f(){ #==== \""<<(itpath->first)<<"\" ===="<<endl<<":"<<endl;
 		//cerr<<"#==== \""<<(itpath->first)<<"\" ===="<<endl;
 		long long ggp_size=0;
 		//вывод групп папок
+		// по всем контейнерам ГП
 		for(auto itggp = itpath->second.first.begin(); itggp!=itpath->second.first.end(); itggp++){
 			set<string> ggp_exts;
-			//*itggp <-> GGP_t
+			//*itggp <-> GP_cont
 			int gp_size=0;
+			// по всем ГП
 			for(auto itgp = itggp->begin(); itgp!=itggp->end(); itgp++){
 				//itgp->first  <-> set<vector<string>,size_less>
 				//itgp->second <-> map<vector<string>,GF_cont::iterator,size_less>
-				long long gp1_size=0;
+				long long gp1_size=0; // суммарный размер списка фалов
 				set<string> exts;
+				// по списку файлов в ГП
 				for(auto itf = itgp->second.begin(); itf!=itgp->second.end(); itf++){
 					string ext = find_ext(&*prev(itf->first.end()));
 					exts.insert(ext);
 					ggp_exts.insert(move(ext));
 					gp1_size+=itf->second->second.size;
 				}
+				gp_size+= gp1_size*(itgp->first.size()-1);
+				
+				// выводим заголовок ГП, количество файлов, их размер, и список расширений
 				cout<<"rmfromdir(){ # "<<itgp->second.size()<<" файлов, "<<bytes(gp1_size);
 					for(auto it = exts.begin(); it!= exts.end(); it++)
 						cout<<' '<<*it;
 				cout<<endl;
 
-				//вывод списка файлов
+				//вывод списка файлов ГП
 				for(auto itf = itgp->second.begin(); itf!=itgp->second.end(); itf++){
 					//itf->first  <-> vector<string>
 					//itf->second <-> pair<string,GF>
 					cout<<"\trm \"$1/"<<itf->first<<"\" "
 						<<"# ("<<bytes(itf->second->second.size)<<") ";
-					int gf_count=0;
+					int gf_count=0; // количество файлов, которые учавствуют в ГП, но не относятся к текущему файлу в данной ГП
+					// по ГФ.paths
 					for(auto it = itf->second->second.paths.begin(); it!=itf->second->second.paths.end(); it++)
 						//map<vector<string>,bool,reverse_less> paths;
 						if(it->second
-							|| end_by(it->first,itf->first))
+							|| end_by(it->first,itf->first)){ //???
 							gf_count++;
+							if(!it->second)
+								cerr << "//??? "<<it->first<<endl;
+						}
 					gf_count -= itgp->first.size();
 					if(gf_count)
-						cout<<itf->second->first<<" (ещё существует "<<gf_count<<" таких же файлов)";
+						cout<<itf->second->first/*это хэш*/<<" (ещё существует "<<gf_count<<" таких же файлов)";
 					cout<<endl;
 					
+					// вывод файлов этого же ГФа, которые не принадлжат ни одной ГП
 					for(auto it = itf->second->second.paths.begin(); it!=itf->second->second.paths.end(); it++)
 						//map<vector<string>,bool,reverse_less> paths;
 						if(!it->second
-							&& !end_by(it->first,itf->first))
+							&& !end_by(it->first,itf->first)) { //???
 								cout <<"\t#rm -f \""<<(it->first)<<"\""<<endl;
+								gp_size+=itf->second->second.size;
+								//it->second = true; // показывать только при первом разе
+						}
 				}
 				cout <<"}"<<endl;
-				gp_size+= gp1_size*(itgp->first.size()-1);
 				
-				//вывод списка папок
+				//вывод списка папок ГП
 				for(auto itp = itgp->first.begin(); itp!=itgp->first.end(); itp++){
 					string pathdir;
 					for(auto it = itp->begin(); it!=itp->end(); it++)
 						pathdir+=*it+'/';
 					//cout << "pathdir="<<pathdir<<endl;
+
+					int other_files=0;// количество файлов в папке, которые не принадлежат этой ГП
 					auto file_it = lower_bound(psd.begin(),psd.end(),make_pair(pathdir,make_pair((long long) 0,0)),
 						[](const pair<string,pair<long long,long long>> & l, const pair<string,pair<long long,long long>> & r){
 							return l.first<r.first;//path
 						}
 					);
 					auto file_it2 = file_it;
-					int other_files=0;
 					while(file_it!=psd.end() && file_it->first.find(pathdir)==0){
 						//cout << file_it->first <<endl;
 						other_files++, file_it++;
@@ -1037,7 +1112,7 @@ void print_GGX(const GGPsGFs_t & GGX, const sii_cont & psd){
 							vector<string> file = s2vs(file_it->first.c_str());
 							file.erase(file.begin(),file.begin()+itp->size());
 							if(itgp->second.find(file)==itgp->second.end())
-								cout<<"# "<<file_it->first<<endl;
+								cout<<"#           "<<file_it->first<<endl;
 						}
 					}
 				}
@@ -1095,7 +1170,7 @@ void print_script_rmdirs(const hps_t * phps, const sii_cont & psd){
 	make_GF0(&GF0,&GFs);
 
 	//=== сформировать ГПы ===
-	GGP_t GPs;//одна большая группа группа папок
+	GP_cont GPs;//одна большая группа группа папок
 	make_GPs(&GPs,&GFs);
 	cerr<<GPs.size()<<" групп папок" <<endl;
 	

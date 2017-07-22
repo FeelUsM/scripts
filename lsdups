@@ -33,24 +33,16 @@ files="$(ls -1 "$wd"/20*-files "$wd"/19*-files "$wd"/21*-files 2>/dev/null | sor
 
 #printargs "$files" "$wd"/hashes 
 
+datetime=$(date '+%F_%H-%M-%S')
+[ -f "$wd"/rmdups.bash ] && mv "$wd"/rmdups.bash "$wd/rmdups.bash_$datetime" && bak=1
+
 runcpp -o '-std=gnu++11 -O3' lsdups-internal.cpp "$files" "$wd"/hashes > "$wd"/rmdups.bash || { echo rmdups not created; exit 1; }
 chmod +x "$wd"/rmdups.bash
 
-if [ ! -f "$wd"/rmdups-persist ]; then
-	if [ -s "$wd"/rmdups.bash ]; then  
-		echo lsdups: "$wd"/rmdups-persist не создан
-		grep '^\(f(){ #====\|#----\)' "$wd"/rmdups.bash
-	else
-		echo дублирующиеся файлы отсутствуют
-	fi
+if [ -s "$wd"/rmdups.bash ]; then  
+	grep '^\(f(){ #====\|#----\)' "$wd"/rmdups.bash
 else
-	if [ "$(	diff -u3 "$wd"/rmdups-persist "$wd"/rmdups )" != "" ]; then
-		echo lsdups: Изменеия в дубликатах по сравнению с .files/rmdups-persist \
-\( $(	diff -u3 "$wd"/rmdups-persist "$wd"/rmdups.bash | wc -l ) \):
-		diff -u3 <(grep '^\(f(){ #====\|#----\)' "$wd"/rmdups-persist) <(grep '^\(f(){ #====\|#----\)' "$wd"/rmdups.bash) | 
-			grep -v '^\(+++\|---\)'
-	else
-		echo ИЗМЕНЕНИЙ НЕТ
-		grep '^\(f(){ #====\|#----\)' "$wd"/rmdups.bash
-	fi
+	echo дублирующиеся файлы отсутствуют
 fi
+
+[ "$bak" = 1 ] && echo старый rmdups.bash перемещен в \""$wd/rmdups.bash $datetime"\" || echo нету старого rmdups.bash
