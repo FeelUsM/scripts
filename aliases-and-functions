@@ -26,10 +26,17 @@ alias yacadav='cadaver https://webdav.yandex.ru'
 alias path-n='echo $PATH | sed '\''s/:/\n/g'\'
 
 #=== winlink ===
-alias winlink='nircmd shortcut'
+winlink(){
+	usage()
+	{
+		echo usage: winlink DEST SOURCE >&2
+	}
+	[ $# != 2 ] && { usage; return 1; }
+	[ -d "$1" ] && cmd /C mklink /J "$2" "$1" || cmd /C mklink /H "$2" "$1"
+}
 
 #=== stack ===
-STACK_SEPARATOR="\$'\n'" #how it works is invisible throw echo, but visible throw 'printf "%s"' (under bash)
+STACK_SEPARATOR="\$'\n'" #how it works is invisible through echo, but visible through 'printf "%s"' (under bash)
 push()
 {
 	usage()
@@ -67,6 +74,13 @@ popto()
 #=== tar ===
 myuntar()
 {
+	usage()
+	{
+		echo usage: myuntar archive.tgz >&2
+		echo   разархивирует в любом случае в отдельную папку >&2
+	}
+	[ $# != 1 ] && { usage; return 1; }
+
 	mkdir ${1%.tgz}
 	cd ${1%.tgz}
 	tar -xzf ../$1
@@ -84,6 +98,13 @@ myuntar()
 }
 mytar()
 {
+	usage()
+	{
+		echo usage: mytar dir_or_file >&2
+		echo   архивирует в dir_or_file.tgz >&2
+	}
+	[ $# != 1 ] && { usage; return 1; }
+
 	tar -czf $1 -o $1.tgz
 }
 
@@ -180,26 +201,47 @@ fi
 }
 #----
 
-# создает симлинк $1 указывающий на $2
+# создает симлинк $2 указывающий на $1
 # если файл или симлинк с таким имененм существует - переименовывает его
-linkto() {
-	#echo "$2" "$1"
-	if [ -f "$1" -o -L "$1" ] && [ -z "$(grep -P "\\Q$2\\E\$" <(ls -l "$1") )" ]; then
+linksave() {
+	usage()
+	{
+		echo usage: linksave DEST SOURCE >&2
+		echo   если файл или симлинк с таким имененм существует - переименовывает его >&2
+	}
+	[ $# != 2 ] && { usage; return 1; }
+
+	#echo "$1" "$2"
+	if [ -f "$2" -o -L "$2" ] && [ -z "$(grep -P "\\Q$1\\E\$" <(ls -l "$2") )" ]; then
 		date_var="$(date "+%F-%H-%M-%S")"
-		mv "$1" "$1".bak-"$date_var"
-		echo "$1" moved to "$1".bak-"$date_var"
+		mv "$2" "$2".bak-"$date_var"
+		echo "$2" moved to "$2".bak-"$date_var"
 	fi
 	# после переименования не должно остаться $1
-	[ -f "$1" -o -L "$1" ] || ln -s "$2" "$1"
+	[ -f "$2" -o -L "$2" ] || ln -s "$1" "$2"
 }
 
 # добавляет строку $1 в файл $2, если там ее нет
-append_line() {
+append_ifnot_line() {
+	usage()
+	{
+		echo usage: append_ifnot_line STRING FILE >&2
+		echo   добавляет строку, если ее там нет >&2
+	}
+	[ $# != 2 ] && { usage; return 1; }
+
 	[ -z "$(grep -P "\\Q$1\\E" "$2")" ] && echo "$1" >> "$2" || return 0
 }
 
 # возвращает столбец;строку , где находится курсор
 curpos() {
+	usage()
+	{
+		echo usage: curpos >&2
+		echo   return 'col;line' >&2
+	}
+	[ $# != 0 ] && { usage; return 1; }
+
 	# based on a script from http://invisible-island.net/xterm/xterm.faq.html
 	exec < /dev/tty
 	local oldstty=$(stty -g)
