@@ -23,7 +23,7 @@ alias wgetsite="wget -r -np -k -p -e robots=off -U mozilla --random-wait"
 alias yacadav='cadaver https://webdav.yandex.ru'
 
 #=== echo $PATH ===
-alias path-n='echo $PATH | sed '\''s/:/\n/g'\'
+alias echopath='echo $PATH | sed '\''s/:/\n/g'\'
 
 #=== winlink ===
 winlink(){
