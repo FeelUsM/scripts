@@ -73,40 +73,46 @@ alias echopath='echo $PATH | sed '\''s/:/\n/g'\'
 
 pathdisable() # что
 {
-	local found
-	while found=$((echo "$PATH" | grep "$1" > /dev/null) && (echo "$PATH" | sed 's/^(.*):([^:]*'"$1"'[^:]*):(.*)$/\2/') ); do
-		echo disable "$found"
-		PATH=${PATH/"$found"/}
-		PATH=${PATH//::/:}
-		PATH=${PATH#:}
-		PATH=${PATH%:}
-		[ -z "$DISABLEDPATH" ] && DISABLEDPATH="$found" || DISABLEDPATH="$DISABLEDPATH:$found"
+	for x ; do
+		local found
+		while found=$((echo "$PATH" | grep "$x" > /dev/null) && (echo "$PATH" | sed 's/^(.*):([^:]*'"$x"'[^:]*):(.*)$/\2/') ); do
+			echo disable "$found"
+			PATH=${PATH/"$found"/}
+			PATH=${PATH//::/:}
+			PATH=${PATH#:}
+			PATH=${PATH%:}
+			[ -z "$DISABLEDPATH" ] && DISABLEDPATH="$found" || DISABLEDPATH="$DISABLEDPATH:$found"
+		done
 	done
 }
 
 enable2pathhead() # что
 {
-	local found
-	while found=$((echo "$DISABLEDPATH" | grep "$1" > /dev/null) && (echo "$DISABLEDPATH" | sed 's/^(.*):([^:]*'"$1"'[^:]*):(.*)$/\2/') ); do
-		echo disable "$found"
-		DISABLEDPATH=${DISABLEDPATH/"$found"/}
-		DISABLEDPATH=${DISABLEDPATH//::/:}
-		DISABLEDPATH=${DISABLEDPATH#:}
-		DISABLEDPATH=${DISABLEDPATH%:}
-		[ -z "$PATH" ] && PATH="$found" || PATH="$found:$PATH"
+	for x ; do
+		local found
+		while found=$((echo "$DISABLEDPATH" | grep "$x" > /dev/null) && (echo "$DISABLEDPATH" | sed 's/^(.*):([^:]*'"$x"'[^:]*):(.*)$/\2/') ); do
+			echo disable "$found"
+			DISABLEDPATH=${DISABLEDPATH/"$found"/}
+			DISABLEDPATH=${DISABLEDPATH//::/:}
+			DISABLEDPATH=${DISABLEDPATH#:}
+			DISABLEDPATH=${DISABLEDPATH%:}
+			[ -z "$PATH" ] && PATH="$found" || PATH="$found:$PATH"
+		done
 	done
 }
 
 enable2pathtail() # что
 {
-	local found
-	while found=$((echo "$DISABLEDPATH" | grep "$1" > /dev/null) && (echo "$DISABLEDPATH" | sed 's/^(.*):([^:]*'"$1"'[^:]*):(.*)$/\2/') ); do
-		echo disable "$found"
-		DISABLEDPATH=${DISABLEDPATH/"$found"/}
-		DISABLEDPATH=${DISABLEDPATH//::/:}
-		DISABLEDPATH=${DISABLEDPATH#:}
-		DISABLEDPATH=${DISABLEDPATH%:}
-		[ -z "$PATH" ] && PATH="$found" || PATH="$PATH:$found"
+	for x ; do
+		local found
+		while found=$((echo "$DISABLEDPATH" | grep "$x" > /dev/null) && (echo "$DISABLEDPATH" | sed 's/^(.*):([^:]*'"$x"'[^:]*):(.*)$/\2/') ); do
+			echo disable "$found"
+			DISABLEDPATH=${DISABLEDPATH/"$found"/}
+			DISABLEDPATH=${DISABLEDPATH//::/:}
+			DISABLEDPATH=${DISABLEDPATH#:}
+			DISABLEDPATH=${DISABLEDPATH%:}
+			[ -z "$PATH" ] && PATH="$found" || PATH="$PATH:$found"
+		done
 	done
 }
 
