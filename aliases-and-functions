@@ -75,13 +75,22 @@ pathdisable() # что
 {
 	for x ; do
 		local found
-		while found=$((echo "$PATH" | grep "$x" > /dev/null) && (echo "$PATH" | sed 's/^(.*):([^:]*'"$x"'[^:]*):(.*)$/\2/') ); do
-			echo disable "$found"
-			PATH=${PATH/"$found"/}
-			PATH=${PATH//::/:}
-			PATH=${PATH#:}
-			PATH=${PATH%:}
-			[ -z "$DISABLEDPATH" ] && DISABLEDPATH="$found" || DISABLEDPATH="$DISABLEDPATH:$found"
+		while true; do
+			if found=$((echo "$PATH" | grep '^(.*):([^:]*'"$x"'[^:]*):(.*)$' > /dev/null) && (echo "$PATH" | sed 's/^(.*):([^:]*'"$x"'[^:]*):(.*)$/\2/') ); then
+				echo disable "$found"
+				PATH=${PATH/":$found:"/:}
+				[ -z "$DISABLEDPATH" ] && DISABLEDPATH="$found" || DISABLEDPATH="$DISABLEDPATH:$found"
+			elif found=$((echo "$PATH" | grep '^([^:]*'"$x"'[^:]*):(.*)$' > /dev/null) && (echo "$PATH" | sed 's/^([^:]*'"$x"'[^:]*):(.*)$/\2/') ); then
+				echo disable "$found"
+				PATH=${PATH/"$found:"/}
+				[ -z "$DISABLEDPATH" ] && DISABLEDPATH="$found" || DISABLEDPATH="$DISABLEDPATH:$found"
+			elif found=$((echo "$PATH" | grep '^(.*):([^:]*'"$x"'[^:]*)$' > /dev/null) && (echo "$PATH" | sed 's/^(.*):([^:]*'"$x"'[^:]*)$/\2/') ); then
+				echo disable "$found"
+				PATH=${PATH/":$found"/}
+				[ -z "$DISABLEDPATH" ] && DISABLEDPATH="$found" || DISABLEDPATH="$DISABLEDPATH:$found"
+			else
+				break;
+			fi
 		done
 	done
 }
@@ -90,13 +99,22 @@ enable2pathhead() # что
 {
 	for x ; do
 		local found
-		while found=$((echo "$DISABLEDPATH" | grep "$x" > /dev/null) && (echo "$DISABLEDPATH" | sed 's/^(.*):([^:]*'"$x"'[^:]*):(.*)$/\2/') ); do
-			echo disable "$found"
-			DISABLEDPATH=${DISABLEDPATH/"$found"/}
-			DISABLEDPATH=${DISABLEDPATH//::/:}
-			DISABLEDPATH=${DISABLEDPATH#:}
-			DISABLEDPATH=${DISABLEDPATH%:}
-			[ -z "$PATH" ] && PATH="$found" || PATH="$found:$PATH"
+		while true; do
+			if found=$((echo "$DISABLEDPATH" | grep '^(.*):([^:]*'"$x"'[^:]*):(.*)$' > /dev/null) && (echo "$DISABLEDPATH" | sed 's/^(.*):([^:]*'"$x"'[^:]*):(.*)$/\2/') ); then
+				echo enable "$found"
+				DISABLEDPATH=${DISABLEDPATH/":$found:"/:}
+				[ -z "$PATH" ] && PATH="$found" || PATH="$found:$PATH"
+			elif found=$((echo "$DISABLEDPATH" | grep '^([^:]*'"$x"'[^:]*):(.*)$' > /dev/null) && (echo "$DISABLEDPATH" | sed 's/^([^:]*'"$x"'[^:]*):(.*)$/\2/') ); then
+				echo enable "$found"
+				DISABLEDPATH=${DISABLEDPATH/"$found:"/}
+				[ -z "$PATH" ] && PATH="$found" || PATH="$found:$PATH"
+			elif found=$((echo "$DISABLEDPATH" | grep '^(.*):([^:]*'"$x"'[^:]*)$' > /dev/null) && (echo "$DISABLEDPATH" | sed 's/^(.*):([^:]*'"$x"'[^:]*)$/\2/') ); then
+				echo enable "$found"
+				DISABLEDPATH=${DISABLEDPATH/":$found"/}
+				[ -z "$PATH" ] && PATH="$found" || PATH="$found:$PATH"
+			else
+				break;
+			fi
 		done
 	done
 }
@@ -105,13 +123,22 @@ enable2pathtail() # что
 {
 	for x ; do
 		local found
-		while found=$((echo "$DISABLEDPATH" | grep "$x" > /dev/null) && (echo "$DISABLEDPATH" | sed 's/^(.*):([^:]*'"$x"'[^:]*):(.*)$/\2/') ); do
-			echo disable "$found"
-			DISABLEDPATH=${DISABLEDPATH/"$found"/}
-			DISABLEDPATH=${DISABLEDPATH//::/:}
-			DISABLEDPATH=${DISABLEDPATH#:}
-			DISABLEDPATH=${DISABLEDPATH%:}
-			[ -z "$PATH" ] && PATH="$found" || PATH="$PATH:$found"
+		while true; do
+			if found=$((echo "$DISABLEDPATH" | grep '^(.*):([^:]*'"$x"'[^:]*):(.*)$' > /dev/null) && (echo "$DISABLEDPATH" | sed 's/^(.*):([^:]*'"$x"'[^:]*):(.*)$/\2/') ); then
+				echo enable "$found"
+				DISABLEDPATH=${DISABLEDPATH/":$found:"/:}
+				[ -z "$PATH" ] && PATH="$found" || PATH="$PATH:$found"
+			elif found=$((echo "$DISABLEDPATH" | grep '^([^:]*'"$x"'[^:]*):(.*)$' > /dev/null) && (echo "$DISABLEDPATH" | sed 's/^([^:]*'"$x"'[^:]*):(.*)$/\2/') ); then
+				echo enable "$found"
+				DISABLEDPATH=${DISABLEDPATH/"$found:"/}
+				[ -z "$PATH" ] && PATH="$found" || PATH="$PATH:$found"
+			elif found=$((echo "$DISABLEDPATH" | grep '^(.*):([^:]*'"$x"'[^:]*)$' > /dev/null) && (echo "$DISABLEDPATH" | sed 's/^(.*):([^:]*'"$x"'[^:]*)$/\2/') ); then
+				echo enable "$found"
+				DISABLEDPATH=${DISABLEDPATH/":$found"/}
+				[ -z "$PATH" ] && PATH="$found" || PATH="$PATH:$found"
+			else
+				break;
+			fi
 		done
 	done
 }
